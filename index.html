@@ -1,0 +1,3327 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RESISTOR MASTER: ภารกิจถอดรหัสแถบสี | แผนกช่างไฟฟ้า-อิเล็กทรอนิกส์</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a1128;
+      --panel-dark: #101f42;
+      --cyan-neon: #00f0ff;
+      --amber-neon: #ffb703;
+      --green-neon: #00f59b;
+      --red-neon: #ff3366;
+    }
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background-color: var(--bg-dark);
+      color: #e2e8f0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .font-tech {
+      font-family: 'Chakra Petch', sans-serif;
+    }
+    /* Cyberpunk / Lab Glass Panels */
+    .glass-panel {
+      background: rgba(16, 31, 66, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    .glass-card {
+      background: rgba(22, 42, 86, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    }
+    /* Glow Effects */
+    .glow-cyan {
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+    }
+    .text-glow {
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+    }
+    /* Pulse and Bounce Animations */
+    @keyframes pulseGlow {
+      0%, 100% { filter: drop-shadow(0 0 6px #00f0ff); opacity: 1; }
+      50% { filter: drop-shadow(0 0 16px #00f0ff); opacity: 0.85; }
+    }
+    .band-selected {
+      animation: pulseGlow 1.4s infinite ease-in-out;
+      cursor: pointer;
+    }
+    .band-dimmed {
+      opacity: 0.38 !important;
+      transition: opacity 0.25s ease;
+    }
+    /* Smooth Transitions */
+    .tab-btn.active {
+      background: linear-gradient(135deg, #00f0ff 0%, #0077b6 100%);
+      color: #050d1a;
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.45);
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #09132b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e3a8a;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00f0ff;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 overflow-x-hidden selection:bg-cyan-500 selection:text-slate-950">
+
+  <header class="w-full border-b border-cyan-500/20 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <!-- Title & Branding -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="UIController.switchView('welcome')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+          <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-tech text-lg font-bold tracking-wider text-cyan-400">RESISTOR MASTER</span>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-cyan-900/60 border border-cyan-400/40 text-cyan-300 font-semibold">ปวช.1</span>
+          </div>
+          <p class="text-xs text-slate-400">วิชางานไฟฟ้าและอิเล็กทรอนิกส์เบื้องต้น (20100-1005)</p>
+        </div>
+      </div>
+
+      <!-- User Profile & Quick Controls -->
+      <div class="flex items-center gap-3">
+        <!-- Supabase Cloud Connection Status Badge -->
+        <button onclick="UIController.showSupabaseConfigModal()" id="btnSupabaseStatus" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700 hover:border-emerald-500/50 text-xs font-tech text-slate-300 transition" title="คลิกเพื่อตั้งค่า Supabase URL / Anon Key">
+          <span id="supabaseIndicator" class="w-2 h-2 rounded-full bg-slate-500"></span>
+          <span id="supabaseStatusText" class="hidden sm:inline">Offline (Local)</span>
+        </button>
+
+        <!-- Audio Toggle -->
+        <button id="btnAudioToggle" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition" title="เปิด/ปิดเสียง">
+          <svg id="iconAudioOn" class="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+          <svg id="iconAudioOff" class="w-5 h-5 text-slate-500 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+          </svg>
+        </button>
+
+        <!-- Player Badge -->
+        <div id="playerBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-cyan-500/30 cursor-pointer hover:border-cyan-400 transition" onclick="UIController.showProfileModal()">
+          <div class="w-7 h-7 rounded-full bg-cyan-600 flex items-center justify-center text-xs font-bold font-tech text-white" id="badgeAvatar">R</div>
+          <div class="text-left text-xs leading-tight">
+            <div class="font-semibold text-slate-200" id="badgeName">ผู้เรียน</div>
+            <div class="text-slate-400 font-tech" id="badgeClass">ห้องเรียน -</div>
+          </div>
+        </div>
+
+        <button onclick="LoginController.showLoginModal(true)" class="text-xs px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white transition" title="สลับบัญชีผู้เรียน">
+          สลับผู้ใช้
+        </button>
+
+        <!-- Teacher Dashboard Quick Link -->
+        <button onclick="UIController.switchView('teacher')" class="text-xs px-2.5 py-1.5 rounded-lg bg-indigo-900/60 hover:bg-indigo-800 border border-indigo-500/40 text-indigo-300 font-medium transition flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+          <span>สำหรับครู</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Secondary Navigation Tabs -->
+    <div class="max-w-7xl mx-auto px-4 flex gap-1.5 overflow-x-auto py-1 border-t border-slate-800/80">
+      <button class="tab-btn active px-4 py-1.5 rounded-lg text-sm transition font-tech flex items-center gap-1.5 whitespace-nowrap" data-tab="welcome" onclick="UIController.switchView('welcome')">
+        <span>🏠 หน้าหลัก</span>
+      </button>
+      <button class="tab-btn px-4 py-1.5 rounded-lg text-sm text-slate-300 hover:text-white transition font-tech flex items-center gap-1.5 whitespace-nowrap" data-tab="learn" onclick="UIController.switchView('learn')">
+        <span>📖 LEARN ห้องเรียนรู้</span>
+      </button>
+      <button class="tab-btn px-4 py-1.5 rounded-lg text-sm text-slate-300 hover:text-white transition font-tech flex items-center gap-1.5 whitespace-nowrap" data-tab="simulator" onclick="UIController.switchView('simulator')">
+        <span>🔬 SIMULATOR ห้องทดลอง</span>
+      </button>
+      <button class="tab-btn px-4 py-1.5 rounded-lg text-sm text-slate-300 hover:text-white transition font-tech flex items-center gap-1.5 whitespace-nowrap" data-tab="challenge" onclick="UIController.switchView('challenge')">
+        <span>⚡ CHALLENGE ภารกิจจับเวลา</span>
+      </button>
+      <button class="tab-btn px-4 py-1.5 rounded-lg text-sm text-slate-300 hover:text-white transition font-tech flex items-center gap-1.5 whitespace-nowrap" data-tab="scoreboard" onclick="UIController.switchView('scoreboard')">
+        <span>🏆 SCOREBOARD ตารางคะแนน</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 relative">
+
+    <!-- ================= VIEW 1: WELCOME & HUB ================= -->
+    <section id="view-welcome" class="space-y-6">
+      <!-- Hero Banner -->
+      <div class="glass-panel rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-10 -top-10 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div class="max-w-3xl space-y-4 relative z-10">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 text-xs font-tech">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+            ELECTRONICS TRAINING LAB • ระดับ ปวช.1
+          </div>
+          <h1 class="text-3xl sm:text-5xl font-bold tracking-tight text-white font-tech">
+            ภารกิจถอดรหัสแถบสี <br>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 text-glow">
+              RESISTOR MASTER
+            </span>
+          </h1>
+          <p class="text-slate-300 leading-relaxed text-sm sm:text-base">
+            ฝึกฝนทักษะการอ่านค่าความต้านทานจากรหัสสีแบบ 4 แถบ, 5 แถบ และ 6 แถบสี ตามมาตรฐานหลักสูตรวิชา
+            <strong class="text-cyan-300">งานไฟฟ้าและอิเล็กทรอนิกส์เบื้องต้น (20100-1005)</strong> 
+            ผ่านการทดลองแบบอินเทอร์แอคทีฟ 2D และภารกิจท้าทายความเร็วพร้อมระบบคอมโบสะสมคะแนน
+          </p>
+
+          <div class="pt-2 flex flex-wrap gap-3">
+            <button onclick="UIController.switchView('learn')" class="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold hover:brightness-110 shadow-lg shadow-cyan-500/30 font-tech flex items-center gap-2 transition transform active:scale-95">
+              <span>🚀 เริ่มต้นเรียนรู้ (LEARN)</span>
+            </button>
+            <button onclick="UIController.switchView('challenge')" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-cyan-500/40 text-cyan-300 font-semibold font-tech flex items-center gap-2 transition">
+              <span>⚡ เข้าสู่ภารกิจจับเวลา (CHALLENGE)</span>
+            </button>
+            <button onclick="UIController.showTutorialModal()" class="px-4 py-3 rounded-xl bg-slate-900/60 hover:bg-slate-800 border border-slate-700 text-slate-300 text-sm transition">
+              <span>💡 แนะนำการเล่น (Tutorial)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Access 4 Mode Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card 1 -->
+        <div onclick="UIController.switchView('learn')" class="glass-card rounded-xl p-5 hover:border-cyan-400/50 transition cursor-pointer group hover:-translate-y-1">
+          <div class="w-12 h-12 rounded-xl bg-cyan-950/80 border border-cyan-500/30 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+            📖
+          </div>
+          <h3 class="font-tech text-lg font-bold text-white group-hover:text-cyan-300">1. LEARN ห้องเรียนรู้</h3>
+          <p class="text-xs text-slate-400 mt-1">ศึกษาโครงสร้าง 4, 5, 6 แถบสี แตะดูหน้าที่แต่ละแถบ พร้อมสมการคำนวณแบบสด</p>
+        </div>
+        <!-- Card 2 -->
+        <div onclick="UIController.switchView('simulator')" class="glass-card rounded-xl p-5 hover:border-blue-400/50 transition cursor-pointer group hover:-translate-y-1">
+          <div class="w-12 h-12 rounded-xl bg-blue-950/80 border border-blue-500/30 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+            🔬
+          </div>
+          <h3 class="font-tech text-lg font-bold text-white group-hover:text-blue-300">2. SIMULATOR ห้องทดลอง</h3>
+          <p class="text-xs text-slate-400 mt-1">จัดแถบสีอิสระ หรือป้อนค่าโอห์มที่ต้องการ เพื่อแปลงเป็นแถบสี (Reverse Engineering)</p>
+        </div>
+        <!-- Card 3 -->
+        <div onclick="UIController.switchView('challenge')" class="glass-card rounded-xl p-5 hover:border-amber-400/50 transition cursor-pointer group hover:-translate-y-1">
+          <div class="w-12 h-12 rounded-xl bg-amber-950/80 border border-amber-500/30 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+            ⚡
+          </div>
+          <h3 class="font-tech text-lg font-bold text-white group-hover:text-amber-300">3. CHALLENGE ภารกิจจับเวลา</h3>
+          <p class="text-xs text-slate-400 mt-1">แข่งกับเวลา 3 ระดับความยาก สุ่มโจทย์ใหม่ไม่ซ้ำ สะสมคอมโบรับเกรด S, A, B</p>
+        </div>
+        <!-- Card 4 -->
+        <div onclick="UIController.switchView('scoreboard')" class="glass-card rounded-xl p-5 hover:border-emerald-400/50 transition cursor-pointer group hover:-translate-y-1">
+          <div class="w-12 h-12 rounded-xl bg-emerald-950/80 border border-emerald-500/30 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+            🏆
+          </div>
+          <h3 class="font-tech text-lg font-bold text-white group-hover:text-emerald-300">4. SCOREBOARD ตารางคะแนน</h3>
+          <p class="text-xs text-slate-400 mt-1">ดู 10 อันดับคะแนนสูงสุดบนเครื่อง ประวัติการฝึกฝน และวิเคราะห์สถิติความแม่นยำ</p>
+        </div>
+      </div>
+
+      <!-- Quick Reference Table snippet -->
+      <div class="glass-panel rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h3 class="font-tech text-lg font-bold text-cyan-400 flex items-center gap-2">
+            <span>📊 ตารางเทียบรหัสสีมาตรฐานตามใบเนื้อหา (PDF 20100-1005)</span>
+          </h3>
+          <span class="text-xs text-slate-400">ตัวช่วยจำ: ดำ น้ำตาล แดง ส้ม เหลือง เขียว ฟ้า ม่วง เทา ขาว ทอง เงิน</span>
+        </div>
+        <div class="overflow-x-auto text-xs">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-700 text-slate-400 font-tech">
+                <th class="py-2 px-3">สี (Color)</th>
+                <th class="py-2 px-3">ค่าตัวเลข (Digit)</th>
+                <th class="py-2 px-3">ตัวคูณ (Multiplier)</th>
+                <th class="py-2 px-3">ความคลาดเคลื่อน (Tolerance)</th>
+                <th class="py-2 px-3">TCR (แถบ 6)</th>
+              </tr>
+            </thead>
+            <tbody id="referenceTableBody" class="divide-y divide-slate-800">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 2: LEARN ================= -->
+    <section id="view-learn" class="space-y-6 hidden">
+      <!-- Top Mode Toolbar -->
+      <div class="flex flex-wrap items-center justify-between gap-4 glass-card p-4 rounded-xl">
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-semibold text-slate-300 font-tech">เลือกชนิดตัวต้านทาน:</span>
+          <div class="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-700">
+            <button onclick="LearnController.setBandCount(4)" id="btnLearnBands4" class="px-3 py-1 rounded text-xs font-tech font-bold transition bg-cyan-500 text-slate-950">4 แถบสี</button>
+            <button onclick="LearnController.setBandCount(5)" id="btnLearnBands5" class="px-3 py-1 rounded text-xs font-tech font-semibold transition text-slate-300 hover:text-white">5 แถบสี</button>
+            <button onclick="LearnController.setBandCount(6)" id="btnLearnBands6" class="px-3 py-1 rounded text-xs font-tech font-semibold transition text-slate-300 hover:text-white">6 แถบสี</button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Toggle Role Labels -->
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <input type="checkbox" id="chkShowLabelsLearn" checked onchange="LearnController.toggleLabels(this.checked)" class="rounded bg-slate-800 border-slate-600 text-cyan-500 focus:ring-0">
+            <span>แสดงชื่อหน้าที่แถบสี</span>
+          </label>
+
+          <button onclick="LearnController.randomize()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-cyan-500/40 text-cyan-300 text-xs font-tech flex items-center gap-1 transition">
+            <span>🎲 สุ่มตัวอย่างใหม่</span>
+          </button>
+          <button onclick="LearnController.resetDefault()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-tech transition">
+            <span>🔄 คืนค่าเริ่มต้น</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Resistor SVG Interactive Canvas Area -->
+      <div class="glass-panel rounded-2xl p-6 flex flex-col items-center justify-center relative min-h-[340px]">
+        <div class="text-xs text-cyan-400 font-tech mb-2 flex items-center gap-1">
+          <span class="inline-block w-2 h-2 rounded-full bg-cyan-400"></span>
+          <span>แตะหรือคลิกที่แถบสีแต่ละเส้น หรือปุ่ม Spot ด้านล่างเพื่อดูหน้าที่และคำนวณ</span>
+        </div>
+
+        <!-- The SVG Resistor Container -->
+        <div id="learnResistorContainer" class="w-full max-w-3xl my-2 flex justify-center">
+          <!-- SVG is dynamically injected by ResistorRenderer -->
+        </div>
+
+        <!-- Dynamic Band Role Badges Below Resistor -->
+        <div id="learnBandBadges" class="flex flex-wrap justify-center gap-2 mt-4 max-w-2xl">
+          <!-- Badges injected by LearnController -->
+        </div>
+      </div>
+
+      <!-- Live Equation & Step-by-Step Breakdown -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- Equation Panel -->
+        <div class="lg:col-span-2 glass-panel rounded-2xl p-5 space-y-3">
+          <h4 class="text-sm font-tech font-bold text-cyan-400 flex items-center gap-2">
+            <span>🧮 ขั้นตอนการคำนวณค่าทางคณิตศาสตร์ (Step-by-step)</span>
+          </h4>
+          <div id="learnEquationBox" class="bg-slate-900/90 rounded-xl p-4 border border-cyan-500/20 font-mono text-sm space-y-2 text-slate-200">
+            <!-- Dynamically populated -->
+          </div>
+          <div class="text-xs text-slate-400">
+            * สูตรคำนวณ: 4 แถบ = (10A + B) × M | 5 และ 6 แถบ = (100A + 10B + C) × M
+          </div>
+        </div>
+
+        <!-- 3-Band Special Note Panel -->
+        <div class="glass-panel rounded-2xl p-5 space-y-2 text-xs">
+          <h4 class="text-sm font-tech font-bold text-amber-400 flex items-center gap-1.5">
+            <span>💡 เกร็ดความรู้: ตัวต้านทาน 3 แถบสี</span>
+          </h4>
+          <p class="text-slate-300 leading-relaxed">
+            ในใบเนื้อหาอ้างอิง ตัวต้านทานแบบ 3 แถบจะอ่านเหมือน 4 แถบทุกประการ (หลัก 1, หลัก 2, ตัวคูณ) 
+            แต่จะ <strong class="text-amber-300">ไม่มีแถบสีลำดับที่ 4</strong> ซึ่งหมายความว่ามีค่าความคลาดเคลื่อนสูงถึง 
+            <span class="font-bold text-amber-400">±20%</span>
+          </p>
+          <div class="p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-200 mt-2">
+            ตัวอย่าง: ส้ม (3) – เหลือง (4) – ฟ้า (×10⁶) ไม่มีแถบ 4 = 34 MΩ ±20%
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 3: SIMULATOR ================= -->
+    <section id="view-simulator" class="space-y-6 hidden">
+      <!-- Mode Header -->
+      <div class="flex flex-wrap items-center justify-between gap-4 glass-card p-4 rounded-xl">
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-semibold text-slate-300 font-tech">ชนิดตัวต้านทาน:</span>
+          <div class="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-700">
+            <button onclick="SimController.setBandCount(4)" id="btnSimBands4" class="px-3 py-1 rounded text-xs font-tech font-bold transition bg-cyan-500 text-slate-950">4 แถบสี</button>
+            <button onclick="SimController.setBandCount(5)" id="btnSimBands5" class="px-3 py-1 rounded text-xs font-tech font-semibold transition text-slate-300 hover:text-white">5 แถบสี</button>
+            <button onclick="SimController.setBandCount(6)" id="btnSimBands6" class="px-3 py-1 rounded text-xs font-tech font-semibold transition text-slate-300 hover:text-white">6 แถบสี</button>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="SimController.randomize()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-cyan-500/40 text-cyan-300 text-xs font-tech transition">
+            🎲 สุ่มค่าตัวต้านทาน
+          </button>
+        </div>
+      </div>
+
+      <!-- Resistor Visualizer & Output Panel -->
+      <div class="glass-panel rounded-2xl p-6 flex flex-col items-center justify-center">
+        <div id="simResistorContainer" class="w-full max-w-3xl my-2 flex justify-center"></div>
+
+        <!-- Calculated Result Big Banner -->
+        <div class="mt-6 w-full max-w-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-5 rounded-xl border border-cyan-500/30 text-center space-y-1">
+          <div class="text-xs uppercase tracking-wider text-cyan-400 font-tech">ค่าความต้านทานที่อ่านได้ (Calculated Resistance)</div>
+          <div id="simResultValue" class="text-3xl sm:text-4xl font-bold font-tech text-white text-glow">
+            10 kΩ <span class="text-amber-400 text-xl font-normal">±5%</span>
+          </div>
+          <div id="simResultDetails" class="text-xs text-slate-400 font-mono">
+            10 × 1,000 = 10,000 Ω (ช่วง 9,500 Ω - 10,500 Ω)
+          </div>
+        </div>
+      </div>
+
+      <!-- Palette Controls for Each Band -->
+      <div class="glass-panel rounded-2xl p-6 space-y-4">
+        <h4 class="text-base font-tech font-bold text-cyan-400">🎨 ปรับแต่งสีแต่ละแถบ (Color Selectors)</h4>
+        <div id="simColorBandPickers" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Dynamically generated band pickers -->
+        </div>
+      </div>
+
+      <!-- Reverse Engineering Tool -->
+      <div class="glass-panel rounded-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <h4 class="text-base font-tech font-bold text-amber-400 flex items-center gap-2">
+            <span>🔄 เครื่องมือถอดรหัสย้อนกลับ (Reverse Engineering)</span>
+          </h4>
+          <span class="text-xs text-slate-400">ป้อนค่าโอห์มที่ต้องการ เพื่อหาการเรียงแถบสี</span>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <div class="sm:col-span-5">
+            <label class="block text-xs text-slate-300 mb-1">ค่าความต้านทานที่ต้องการ:</label>
+            <input type="number" id="inputReverseVal" step="any" placeholder="เช่น 4.7 หรือ 100" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white font-tech focus:border-cyan-400 focus:outline-none text-sm">
+          </div>
+          <div class="sm:col-span-3">
+            <label class="block text-xs text-slate-300 mb-1">หน่วย:</label>
+            <select id="selectReverseUnit" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white font-tech focus:border-cyan-400 focus:outline-none text-sm">
+              <option value="1">Ω (โอห์ม)</option>
+              <option value="1000" selected>kΩ (กิโลโอห์ม)</option>
+              <option value="1000000">MΩ (เมกะโอห์ม)</option>
+              <option value="1000000000">GΩ (จิกะโอห์ม)</option>
+            </select>
+          </div>
+          <div class="sm:col-span-4">
+            <button onclick="SimController.handleReverseEngineering()" class="w-full px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-tech text-sm transition">
+              ⚡ ถอดรหัสเป็นแถบสี
+            </button>
+          </div>
+        </div>
+
+        <div id="reverseResultFeedback" class="hidden p-4 rounded-xl bg-slate-900/80 border border-slate-700 text-sm">
+          <!-- Result rendered here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 4: CHALLENGE ================= -->
+    <section id="view-challenge" class="space-y-6 hidden">
+      <!-- Challenge Lobby (Before Start) -->
+      <div id="challengeLobby" class="glass-panel rounded-2xl p-6 sm:p-8 space-y-6">
+        <div class="text-center max-w-xl mx-auto space-y-2">
+          <div class="inline-block p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-3xl mb-1">
+            ⚡
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold font-tech text-white">ภารกิจทดสอบความเร็วถอดรหัสสี</h2>
+          <p class="text-slate-300 text-sm">
+            เลือกโหมดความยาก ทำโจทย์ให้ถูกต้องภายในเวลา ตอบถูกติดต่อกันสะสมคอมโบและรับคะแนนพิเศษ
+          </p>
+        </div>
+
+        <!-- Difficulty Selection Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+          <!-- EASY -->
+          <div class="glass-card rounded-xl p-5 border-2 border-emerald-500/30 hover:border-emerald-400 transition flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold font-tech bg-emerald-950 text-emerald-400 border border-emerald-500/40">EASY</span>
+                <span class="text-xs text-slate-400">40 วิ/ข้อ</span>
+              </div>
+              <h3 class="font-tech text-lg font-bold text-white">ระดับเริ่มต้น (10 ข้อ)</h3>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                เฉพาะตัวต้านทาน 4 แถบสี ตรวจเฉพาะค่าความต้านทาน (Ω/kΩ/MΩ) เหมาะสำหรับฝึกอ่านหลักและตัวคูณ
+              </p>
+            </div>
+            <button onclick="ChallengeEngine.startMission('easy')" class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold font-tech text-sm transition">
+              เริ่มเล่น EASY
+            </button>
+          </div>
+
+          <!-- NORMAL -->
+          <div class="glass-card rounded-xl p-5 border-2 border-blue-500/30 hover:border-blue-400 transition flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold font-tech bg-blue-950 text-blue-400 border border-blue-500/40">NORMAL</span>
+                <span class="text-xs text-slate-400">25 วิ/ข้อ</span>
+              </div>
+              <h3 class="font-tech text-lg font-bold text-white">ระดับมาตรฐาน (12 ข้อ)</h3>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                ผสมตัวต้านทาน 4 และ 5 แถบสี ต้องตอบค่าความต้านทาน <span class="text-cyan-300">และค่าความคลาดเคลื่อน (%)</span>
+              </p>
+            </div>
+            <button onclick="ChallengeEngine.startMission('normal')" class="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold font-tech text-sm transition">
+              เริ่มเล่น NORMAL
+            </button>
+          </div>
+
+          <!-- HARD -->
+          <div class="glass-card rounded-xl p-5 border-2 border-red-500/30 hover:border-red-400 transition flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold font-tech bg-red-950 text-red-400 border border-red-500/40">HARD</span>
+                <span class="text-xs text-slate-400">15 วิ/ข้อ</span>
+              </div>
+              <h3 class="font-tech text-lg font-bold text-white">ระดับมือโปร (15 ข้อ)</h3>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                รวม 4, 5 และ 6 แถบสี ตอบค่าโอห์ม, ความคลาดเคลื่อน และสัมประสิทธิ์อุณหภูมิ (TCR) สำหรับ 6 แถบ
+              </p>
+            </div>
+            <button onclick="ChallengeEngine.startMission('hard')" class="w-full py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold font-tech text-sm transition">
+              เริ่มเล่น HARD
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom Mode Collapsible -->
+        <div class="max-w-4xl mx-auto pt-2">
+          <details class="group bg-slate-900/60 rounded-xl border border-slate-700/60 p-4">
+            <summary class="font-tech text-sm font-semibold text-cyan-400 cursor-pointer flex items-center justify-between">
+              <span>⚙️ โหมดกำหนดเอง (Custom Mode สำหรับคุณครูหรือฝึกเฉพาะทาง)</span>
+              <span class="group-open:rotate-180 transition text-xs">▼</span>
+            </summary>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-4 text-xs">
+              <div>
+                <label class="block text-slate-400 mb-1">จำนวนข้อ (ข้อ):</label>
+                <input type="number" id="customQCount" value="10" min="5" max="30" class="w-full px-2.5 py-1.5 rounded bg-slate-800 border border-slate-600 text-white">
+              </div>
+              <div>
+                <label class="block text-slate-400 mb-1">เวลาต่อข้อ (วินาที):</label>
+                <input type="number" id="customTimePerQ" value="30" min="10" max="90" class="w-full px-2.5 py-1.5 rounded bg-slate-800 border border-slate-600 text-white">
+              </div>
+              <div>
+                <label class="block text-slate-400 mb-1">ชนิดแถบสี:</label>
+                <select id="customBandType" class="w-full px-2.5 py-1.5 rounded bg-slate-800 border border-slate-600 text-white">
+                  <option value="4">เฉพาะ 4 แถบ</option>
+                  <option value="5">เฉพาะ 5 แถบ</option>
+                  <option value="6">เฉพาะ 6 แถบ</option>
+                  <option value="all" selected>สุ่มผสม 4, 5, 6 แถบ</option>
+                </select>
+              </div>
+              <div class="flex items-end">
+                <button onclick="ChallengeEngine.startCustomMission()" class="w-full py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-tech font-bold">
+                  เริ่มโหมด Custom
+                </button>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Active Challenge Area (During Gameplay) -->
+      <div id="challengeActiveGame" class="space-y-4 hidden">
+        <!-- HUD Header Bar -->
+        <div class="glass-card rounded-xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 font-tech">
+          <!-- Question Progress -->
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">ข้อที่:</span>
+            <span id="gameHudQNum" class="text-lg font-bold text-cyan-400">1 / 10</span>
+            <span id="gameHudDifficulty" class="ml-2 text-xs px-2 py-0.5 rounded bg-slate-800 border border-slate-600 text-slate-300">EASY</span>
+          </div>
+
+          <!-- Timer with Progress Circle / Bar -->
+          <div class="flex items-center gap-3">
+            <div class="text-right">
+              <div class="text-xs text-slate-400 leading-tight">เวลาคงเหลือ</div>
+              <div id="gameHudTimerText" class="text-xl font-bold text-amber-400 leading-none">30.0s</div>
+            </div>
+            <div class="w-24 bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700">
+              <div id="gameHudTimerBar" class="h-full bg-gradient-to-r from-amber-500 to-red-500 transition-all duration-100" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <!-- Score & Combo -->
+          <div class="flex items-center gap-4">
+            <div class="text-right">
+              <div class="text-xs text-slate-400 leading-tight">คะแนนสะสม</div>
+              <div id="gameHudScore" class="text-xl font-bold text-emerald-400 leading-none">0</div>
+            </div>
+            <div id="gameHudComboContainer" class="flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-950/60 border border-amber-500/40 text-amber-400">
+              <span class="text-xs">COMBO</span>
+              <span id="gameHudCombo" class="text-lg font-bold leading-none">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- The Challenge Resistor Display -->
+        <div class="glass-panel rounded-2xl p-6 flex flex-col items-center justify-center relative min-h-[300px]">
+          <!-- Interactive Spot Helper hint overlay -->
+          <div class="w-full flex justify-between items-center text-xs text-slate-400 mb-2 px-2">
+            <span>แตะที่แถบสีเพื่อดูหน้าที่ (ไม่หักคะแนน)</span>
+            <span id="gameHintUsedIndicator" class="text-amber-400"></span>
+          </div>
+
+          <div id="challengeResistorContainer" class="w-full max-w-3xl my-2 flex justify-center">
+            <!-- Question SVG injected dynamically -->
+          </div>
+
+          <!-- In-game Band Spot Helper Badges -->
+          <div id="challengeBandBadges" class="flex flex-wrap justify-center gap-2 mt-4 max-w-2xl">
+            <!-- Badges for in-game role checking -->
+          </div>
+        </div>
+
+        <!-- Answer Input Controls Area -->
+        <div class="glass-panel rounded-2xl p-5 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <!-- Value Input -->
+            <div class="md:col-span-5">
+              <label class="block text-xs font-semibold text-slate-300 mb-1 font-tech">1. ค่าความต้านทาน (Resistance):</label>
+              <div class="flex gap-2">
+                <input type="number" id="inputAnsValue" step="any" placeholder="เช่น 4.7 หรือ 120" autocomplete="off" class="flex-1 px-3 py-2.5 rounded-lg bg-slate-900 border border-cyan-500/40 text-white font-tech text-base focus:border-cyan-400 focus:outline-none">
+                <select id="selectAnsUnit" class="w-24 px-2 py-2.5 rounded-lg bg-slate-900 border border-cyan-500/40 text-cyan-300 font-tech font-bold text-base focus:border-cyan-400 focus:outline-none">
+                  <option value="1">Ω</option>
+                  <option value="1000" selected>kΩ</option>
+                  <option value="1000000">MΩ</option>
+                  <option value="1000000000">GΩ</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Tolerance Input (Normal & Hard) -->
+            <div id="colAnsTolerance" class="md:col-span-3">
+              <label class="block text-xs font-semibold text-slate-300 mb-1 font-tech">2. ความคลาดเคลื่อน (%):</label>
+              <select id="selectAnsTolerance" class="w-full px-3 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-tech text-base focus:border-cyan-400 focus:outline-none">
+                <option value="">-- เลือก % --</option>
+                <option value="0.05">±0.05% (เทา)</option>
+                <option value="0.1">±0.1% (ม่วง)</option>
+                <option value="0.25">±0.25% (ฟ้า)</option>
+                <option value="0.5">±0.5% (เขียว)</option>
+                <option value="1">±1% (น้ำตาล)</option>
+                <option value="2">±2% (แดง)</option>
+                <option value="5" selected>±5% (ทอง)</option>
+                <option value="10">±10% (เงิน)</option>
+                <option value="20">±20% (ไม่มีแถบ)</option>
+              </select>
+            </div>
+
+            <!-- TCR Input (Hard Only for 6 bands) -->
+            <div id="colAnsTCR" class="md:col-span-4 hidden">
+              <label class="block text-xs font-semibold text-slate-300 mb-1 font-tech">3. TCR (ppm/°C):</label>
+              <select id="selectAnsTCR" class="w-full px-3 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-tech text-base focus:border-cyan-400 focus:outline-none">
+                <option value="">-- เลือก ppm/°C --</option>
+                <option value="250">250 ppm/°C (ดำ)</option>
+                <option value="100">100 ppm/°C (น้ำตาล)</option>
+                <option value="50">50 ppm/°C (แดง)</option>
+                <option value="25">25 ppm/°C (เหลือง)</option>
+                <option value="20">20 ppm/°C (เขียว)</option>
+                <option value="15">15 ppm/°C (ส้ม)</option>
+                <option value="10">10 ppm/°C (ฟ้า)</option>
+                <option value="5">5 ppm/°C (ม่วง)</option>
+                <option value="1">1 ppm/°C (เทา)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <div class="flex items-center gap-2">
+              <button onclick="ChallengeEngine.useValueHint()" id="btnChallengeHint" class="px-4 py-2 rounded-lg bg-amber-950/80 hover:bg-amber-900/80 border border-amber-500/40 text-amber-300 text-xs font-tech flex items-center gap-1.5 transition">
+                <span>💡 ขอคำใบ้ค่าสี (-15 คะแนน)</span>
+              </button>
+              <button onclick="ChallengeEngine.abortMission()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-tech transition">
+                ยกเลิกภารกิจ
+              </button>
+            </div>
+
+            <button id="btnSubmitAnswer" onclick="ChallengeEngine.submitCurrentAnswer()" class="px-8 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 text-slate-950 font-bold font-tech text-base shadow-lg shadow-cyan-500/30 transition transform active:scale-95">
+              ✓ ส่งคำตอบ (Enter)
+            </button>
+          </div>
+        </div>
+
+        <!-- In-game Question Feedback Dialog/Modal -->
+        <div id="challengeFeedbackBox" class="hidden glass-panel rounded-xl p-5 border-2 transition">
+          <!-- Filled dynamically when answer is checked -->
+        </div>
+      </div>
+
+      <!-- Mission Complete Summary Screen -->
+      <div id="challengeSummaryScreen" class="glass-panel rounded-2xl p-6 sm:p-8 space-y-6 hidden">
+        <div class="text-center space-y-2">
+          <div id="summaryRankBadge" class="inline-block text-5xl font-black font-tech px-6 py-2 rounded-2xl bg-cyan-950 border-2 border-cyan-400 text-cyan-300 shadow-xl shadow-cyan-500/30">
+            S
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold font-tech text-white">ภารกิจเสร็จสิ้น! (Mission Complete)</h2>
+          <p class="text-slate-300 text-sm" id="summarySubtitle">สรุปรายงานผลการถอดรหัสความต้านทาน</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto font-tech">
+          <div class="glass-card rounded-xl p-3 text-center">
+            <div class="text-xs text-slate-400">คะแนนรวม</div>
+            <div id="sumFinalScore" class="text-2xl font-bold text-cyan-400">0</div>
+          </div>
+          <div class="glass-card rounded-xl p-3 text-center">
+            <div class="text-xs text-slate-400">ความถูกต้อง</div>
+            <div id="sumAccuracy" class="text-2xl font-bold text-emerald-400">0%</div>
+          </div>
+          <div class="glass-card rounded-xl p-3 text-center">
+            <div class="text-xs text-slate-400">คอมโบสูงสุด</div>
+            <div id="sumMaxCombo" class="text-2xl font-bold text-amber-400">0</div>
+          </div>
+          <div class="glass-card rounded-xl p-3 text-center">
+            <div class="text-xs text-slate-400">เวลารวมที่ใช้</div>
+            <div id="sumTotalTime" class="text-2xl font-bold text-slate-200">0s</div>
+          </div>
+        </div>
+
+        <!-- Personalized Recommendations -->
+        <div class="max-w-3xl mx-auto glass-card rounded-xl p-4 border border-cyan-500/30 space-y-2">
+          <h4 class="text-sm font-tech font-bold text-cyan-300 flex items-center gap-1.5">
+            <span>🎯 คำแนะนำสำหรับพัฒนาทักษะ (Feedback & Recommendations)</span>
+          </h4>
+          <p id="sumRecommendationText" class="text-xs text-slate-300 leading-relaxed"></p>
+        </div>
+
+        <!-- Review Answers Table Collapsible -->
+        <div class="max-w-3xl mx-auto">
+          <details class="bg-slate-900/60 rounded-xl border border-slate-700/60 p-4">
+            <summary class="font-tech text-sm font-semibold text-cyan-400 cursor-pointer flex justify-between items-center">
+              <span>📋 ดูเฉลยละเอียดทุกข้อในรอบนี้ (Question Review)</span>
+              <span class="text-xs">คลิกเปิด/ปิด</span>
+            </summary>
+            <div class="mt-4 overflow-x-auto text-xs">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-700 text-slate-400 font-tech">
+                    <th class="p-2">ข้อ</th>
+                    <th class="p-2">แถบสี</th>
+                    <th class="p-2">คำตอบของคุณ</th>
+                    <th class="p-2">เฉลยที่ถูกต้อง</th>
+                    <th class="p-2">ผล</th>
+                  </tr>
+                </thead>
+                <tbody id="sumReviewTableBody" class="divide-y divide-slate-800">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+
+        <!-- Summary Action Buttons -->
+        <div class="flex flex-wrap justify-center gap-3 pt-4">
+          <button onclick="ChallengeEngine.restartCurrentDifficulty()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 font-bold font-tech text-slate-950 transition hover:brightness-110">
+            🔄 เล่นอีกครั้ง
+          </button>
+          <button onclick="ChallengeEngine.returnToLobby()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 font-tech text-slate-300 transition">
+            🔀 เปลี่ยนระดับความยาก
+          </button>
+          <button onclick="UIController.switchView('scoreboard')" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-cyan-500/40 font-tech text-cyan-300 transition">
+            🏆 ดูตารางคะแนน
+          </button>
+          <button onclick="UIController.switchView('welcome')" class="px-4 py-2.5 rounded-xl bg-slate-900 text-slate-400 font-tech hover:text-white transition">
+            🏠 กลับหน้าหลัก
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 5: SCOREBOARD ================= -->
+    <section id="view-scoreboard" class="space-y-6 hidden">
+      <div class="glass-panel rounded-2xl p-6 space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold font-tech text-white flex items-center gap-2">
+              <span>🏆 สถิติการเรียนรู้และตารางคะแนน</span>
+            </h2>
+            <p class="text-xs text-slate-400">บันทึกสถิติแยกตามโหมดการเล่น พร้อมเชื่อมต่อตารางคะแนนออนไลน์ผ่าน Supabase</p>
+          </div>
+
+          <!-- Section Switcher: Mode Stats vs Online Leaderboard -->
+          <div class="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-700">
+            <button onclick="ScoreboardController.switchMainTab('stats')" id="btnTabModeStats" class="px-3.5 py-1.5 rounded text-xs font-tech font-bold transition bg-cyan-500 text-slate-950">
+              📊 สถิติโหมดของฉัน
+            </button>
+            <button onclick="ScoreboardController.switchMainTab('leaderboard')" id="btnTabOnlineBoard" class="px-3.5 py-1.5 rounded text-xs font-tech font-semibold transition text-slate-300 hover:text-white">
+              🌐 ลีดเดอร์บอร์ดออนไลน์
+            </button>
+          </div>
+        </div>
+
+        <!-- SUB-TAB 1: My Mode Statistics -->
+        <div id="scoreboardSubViewStats" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Mode 1: Learn Stats -->
+            <div class="glass-card rounded-xl p-4 border border-cyan-500/30 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-tech font-bold text-cyan-400 text-sm">📖 โหมด LEARN (ห้องเรียนรู้)</span>
+                <span class="text-xs text-slate-400 font-mono" id="statLearnCount">0 ครั้ง</span>
+              </div>
+              <p class="text-xs text-slate-300">ความถี่ในการสำรวจโครงสร้างและสูตรคำนวณแถบสี</p>
+              <div class="text-lg font-bold font-tech text-white" id="statLearnLastView">ยังไม่มีประวัติการเข้าชม</div>
+            </div>
+
+            <!-- Mode 2: Simulator Stats -->
+            <div class="glass-card rounded-xl p-4 border border-blue-500/30 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-tech font-bold text-blue-400 text-sm">🔬 โหมด SIMULATOR</span>
+                <span class="text-xs text-slate-400 font-mono" id="statSimCount">0 ครั้ง</span>
+              </div>
+              <p class="text-xs text-slate-300">การทดลองจัดสีและใช้เครื่องมือ Reverse Engineering</p>
+              <div class="text-lg font-bold font-tech text-white" id="statSimSummary">ผสมสี 0 ครั้ง | ถอดรหัส 0 ครั้ง</div>
+            </div>
+
+            <!-- Mode 3: Challenge Stats -->
+            <div class="glass-card rounded-xl p-4 border border-amber-500/30 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-tech font-bold text-amber-400 text-sm">⚡ โหมด CHALLENGE</span>
+                <span class="text-xs text-slate-400 font-mono" id="statChallengeCount">0 รอบ</span>
+              </div>
+              <p class="text-xs text-slate-300">คะแนนเฉลี่ยและความแม่นยำในการทำภารกิจจับเวลา</p>
+              <div class="text-lg font-bold font-tech text-white" id="statChallengeSummary">คะแนนเฉลี่ย: 0 | แม่นยำ: 0%</div>
+            </div>
+          </div>
+
+          <!-- Recent Activity Log on Current Device -->
+          <div class="glass-card rounded-xl p-4 space-y-3">
+            <h4 class="font-tech text-sm font-bold text-cyan-300">📋 กิจกรรมการเรียนรู้ล่าสุดของคุณ</h4>
+            <div class="overflow-x-auto text-xs">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-700 text-slate-400 font-tech">
+                    <th class="py-2 px-3">เวลา</th>
+                    <th class="py-2 px-3">โหมด</th>
+                    <th class="py-2 px-3">รายละเอียดกิจกรรม</th>
+                    <th class="py-2 px-3">ผลลัพธ์/คะแนน</th>
+                  </tr>
+                </thead>
+                <tbody id="myModeStatsTableBody" class="divide-y divide-slate-800">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-TAB 2: Online Leaderboard -->
+        <div id="scoreboardSubViewLeaderboard" class="space-y-4 hidden">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-700">
+              <button onclick="ScoreboardController.switchDifficultyTab('easy')" id="btnScoreTabEasy" class="px-3 py-1.5 rounded text-xs font-tech font-bold transition bg-cyan-500 text-slate-950">EASY</button>
+              <button onclick="ScoreboardController.switchDifficultyTab('normal')" id="btnScoreTabNormal" class="px-3 py-1.5 rounded text-xs font-tech font-semibold transition text-slate-300 hover:text-white">NORMAL</button>
+              <button onclick="ScoreboardController.switchDifficultyTab('hard')" id="btnScoreTabHard" class="px-3 py-1.5 rounded text-xs font-tech font-semibold transition text-slate-300 hover:text-white">HARD</button>
+            </div>
+            <button onclick="ScoreboardController.refreshLeaderboard()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-tech text-cyan-300 flex items-center gap-1.5">
+              <span>🔄 รีเฟรชตารางออนไลน์</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="border-b border-slate-700 text-slate-400 font-tech text-xs">
+                  <th class="py-2.5 px-3">อันดับ</th>
+                  <th class="py-2.5 px-3">รหัสนักเรียน</th>
+                  <th class="py-2.5 px-3">ชื่อผู้เล่น</th>
+                  <th class="py-2.5 px-3">ห้อง</th>
+                  <th class="py-2.5 px-3">คะแนน</th>
+                  <th class="py-2.5 px-3">ความแม่นยำ</th>
+                  <th class="py-2.5 px-3">เวลาที่ใช้</th>
+                  <th class="py-2.5 px-3">วันที่</th>
+                </tr>
+              </thead>
+              <tbody id="scoreboardTableBody" class="divide-y divide-slate-800">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-4 border-t border-slate-800 text-xs text-slate-400 flex-wrap gap-2">
+          <span id="scoreboardFooterSource">* ข้อมูลแสดงผลแบบ Realtime รองรับทั้ง LocalStorage และ Supabase Cloud Database</span>
+          <button onclick="ScoreboardController.confirmClearScores()" class="text-red-400 hover:text-red-300 underline font-tech">
+            ล้างประวัติคะแนนเฉพาะในเครื่องนี้
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 6: TEACHER DASHBOARD ================= -->
+    <section id="view-teacher" class="space-y-6 hidden">
+      <div class="glass-panel rounded-2xl p-6 sm:p-8 space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700 pb-4">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-indigo-950 border border-indigo-500/40 text-indigo-300 text-xs font-tech mb-1">
+              TEACHER CONSOLE • แผนกช่างไฟฟ้าและอิเล็กทรอนิกส์
+            </div>
+            <h2 class="text-2xl font-bold font-tech text-white">แผงควบคุมสำหรับครูผู้สอน (Teacher Dashboard)</h2>
+            <p class="text-xs text-slate-400">ตรวจสอบสถานะนักเรียนที่กำลังออนไลน์ (Active Students) ผ่าน Supabase และส่งออกข้อมูลเป็น CSV</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="UIController.showSqlSchemaModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-cyan-500/40 text-cyan-300 font-tech font-semibold text-xs flex items-center gap-1.5 transition">
+              <span>🛠️ โค้ด SQL สำหรับ Supabase</span>
+            </button>
+            <button onclick="TeacherController.exportToCSV()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-tech font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-emerald-600/20">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              <span>ส่งออกรายงาน (CSV)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Active Students Section -->
+        <div class="glass-card rounded-xl p-4 border border-cyan-500/30 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <h3 class="font-tech text-base font-bold text-white">นักเรียนที่กำลังเข้าใช้งานในขณะนี้ (Active Online Students)</h3>
+            </div>
+            <button onclick="TeacherController.refreshActiveStudents()" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-tech text-cyan-300 transition">
+              🔄 รีเฟรชรายชื่อ
+            </button>
+          </div>
+          
+          <div class="overflow-x-auto text-xs">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-700 text-slate-400 font-tech">
+                  <th class="py-2 px-3">สถานะ</th>
+                  <th class="py-2 px-3">รหัสนักเรียน</th>
+                  <th class="py-2 px-3">ชื่อ-นามสกุล</th>
+                  <th class="py-2 px-3">ห้องเรียน</th>
+                  <th class="py-2 px-3">เข้าใช้ล่าสุด</th>
+                </tr>
+              </thead>
+              <tbody id="teacherActiveStudentsTable" class="divide-y divide-slate-800">
+                <!-- Dynamically populated from Supabase -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Summary Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 font-tech">
+          <div class="glass-card rounded-xl p-4">
+            <div class="text-xs text-slate-400">จำนวนรอบที่เล่นทั้งหมด</div>
+            <div id="teacherTotalRounds" class="text-2xl font-bold text-white mt-1">0 รอบ</div>
+          </div>
+          <div class="glass-card rounded-xl p-4">
+            <div class="text-xs text-slate-400">อัตราผ่านเกณฑ์ (≥70%)</div>
+            <div id="teacherPassRate" class="text-2xl font-bold text-emerald-400 mt-1">0%</div>
+          </div>
+          <div class="glass-card rounded-xl p-4">
+            <div class="text-xs text-slate-400">คะแนนเฉลี่ย</div>
+            <div id="teacherAvgScore" class="text-2xl font-bold text-cyan-400 mt-1">0</div>
+          </div>
+          <div class="glass-card rounded-xl p-4">
+            <div class="text-xs text-slate-400">จุดที่ต้องทบทวนบ่อยสุด</div>
+            <div id="teacherTopWeakness" class="text-sm font-bold text-amber-400 mt-2 truncate">ยังไม่มีข้อมูล</div>
+          </div>
+        </div>
+
+        <!-- Student Activity History Log -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-tech text-base font-bold text-cyan-400">บันทึกประวัติการทดสอบล่าสุด (จากทุกอุปกรณ์บนระบบ)</h4>
+            <span class="text-xs text-slate-400">แสดงผลเรียงจากล่าสุด</span>
+          </div>
+
+          <div class="overflow-x-auto text-xs">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-700 text-slate-400 font-tech">
+                  <th class="py-2 px-3">เวลาที่เล่น</th>
+                  <th class="py-2 px-3">รหัสนักเรียน</th>
+                  <th class="py-2 px-3">ชื่อนักเรียน</th>
+                  <th class="py-2 px-3">ห้อง</th>
+                  <th class="py-2 px-3">ระดับ</th>
+                  <th class="py-2 px-3">ทำถูก / ทั้งหมด</th>
+                  <th class="py-2 px-3">คะแนน</th>
+                  <th class="py-2 px-3">เกณฑ์ประเมิน</th>
+                </tr>
+              </thead>
+              <tbody id="teacherLogTableBody" class="divide-y divide-slate-800">
+                <!-- Log entries -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= MODAL: MANDATORY STUDENT LOGIN GATEWAY ================= -->
+  <div id="modalLoginGateway" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md" role="dialog" aria-modal="true">
+    <div class="glass-panel w-full max-w-md rounded-2xl p-6 sm:p-8 border border-cyan-500/50 shadow-2xl relative space-y-5">
+      <div class="text-center space-y-2">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/40 text-2xl">
+          ⚡
+        </div>
+        <h2 class="text-xl sm:text-2xl font-bold font-tech text-white">เข้าสู่ระบบห้องทดลอง</h2>
+        <p class="text-xs text-slate-300">
+          RESISTOR MASTER: ภารกิจถอดรหัสแถบสี <br>
+          <span class="text-cyan-400">วิชางานไฟฟ้าและอิเล็กทรอนิกส์เบื้องต้น (20100-1005)</span>
+        </p>
+      </div>
+
+      <form id="formStudentLogin" onsubmit="LoginController.handleLoginSubmit(event)" class="space-y-4 text-xs font-tech">
+        <div>
+          <label class="block text-slate-300 mb-1 font-semibold">1. รหัสนักเรียน (Student ID) *</label>
+          <input type="text" id="inputLoginStudentId" required placeholder="เช่น 6620101001" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-sm focus:border-cyan-400 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-slate-300 mb-1 font-semibold">2. ชื่อ - นามสกุล *</label>
+          <input type="text" id="inputLoginName" required placeholder="เช่น สมชาย ใจมั่นคง" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:border-cyan-400 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-slate-300 mb-1 font-semibold">3. แผนก / กลุ่มห้องเรียน *</label>
+          <input type="text" id="inputLoginClass" required placeholder="เช่น ชฟ.1/1 หรือ ชอ.1/2" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:border-cyan-400 focus:outline-none">
+        </div>
+
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold font-tech text-sm shadow-lg shadow-cyan-500/30 hover:brightness-110 transition">
+          🚀 เข้าสู่ห้องทดลอง & บันทึกสถิติ
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: SUPABASE CONFIGURATION ================= -->
+  <div id="modalSupabaseConfig" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden" role="dialog">
+    <div class="glass-panel w-full max-w-lg rounded-2xl p-6 border border-cyan-500/40 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+        <h3 class="text-base font-bold font-tech text-cyan-400 flex items-center gap-2">
+          <span>⚡ ตั้งค่าการเชื่อมต่อฐานข้อมูล Supabase</span>
+        </h3>
+        <button onclick="UIController.closeSupabaseConfigModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <p class="text-slate-300 leading-relaxed">
+          หากต้องการให้ระบบส่งและดึงสถิติของนักเรียนขึ้นระบบ Cloud ส่วนกลาง ให้ระบุ **Project URL** และ **Anon Key** จาก Supabase Dashboard ของคุณ (ข้อมูลจะถูกบันทึกไว้ในเบราว์เซอร์นี้)
+        </p>
+        <div>
+          <label class="block text-slate-300 mb-1 font-tech">Supabase Project URL:</label>
+          <input type="text" id="inputSupabaseUrl" placeholder="https://xxxxxxxx.supabase.co" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-xs focus:border-cyan-400 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-slate-300 mb-1 font-tech">Supabase Anon Public Key:</label>
+          <input type="password" id="inputSupabaseAnonKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-xs focus:border-cyan-400 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2 pt-2">
+        <button onclick="SupabaseService.saveAndConnect()" class="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold font-tech text-xs transition">
+          บันทึก & ทดสอบเชื่อมต่อ
+        </button>
+        <button onclick="UIController.showSqlSchemaModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 text-cyan-300 border border-slate-700 font-tech text-xs transition">
+          ดูโค้ด SQL สำหรับสร้างตาราง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: SQL SCHEMA GENERATOR ================= -->
+  <div id="modalSqlSchema" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden" role="dialog">
+    <div class="glass-panel w-full max-w-2xl rounded-2xl p-6 border border-cyan-500/40 space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+        <h3 class="text-base font-bold font-tech text-cyan-400">🛠️ โค้ด SQL สำหรับ Supabase SQL Editor</h3>
+        <button onclick="UIController.closeSqlSchemaModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-300">
+        คัดลอกคำสั่ง SQL ด้านล่างนี้ไปวางในเมนู <strong>SQL Editor</strong> บนเว็บ Supabase เพื่อสร้างตาราง `resistor_students` และ `resistor_activities` พร้อมกำหนดสิทธิ์ RLS ให้ใช้งานได้ทันที
+      </p>
+
+      <div class="relative flex-1 min-h-[220px]">
+        <textarea id="txtSqlSchema" readonly class="w-full h-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-xs focus:outline-none resize-none"></textarea>
+      </div>
+
+      <div class="flex justify-between items-center pt-2">
+        <button onclick="UIController.copySqlSchemaToClipboard()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-tech font-bold text-xs transition">
+          📋 คัดลอกโค้ด SQL ทั้งหมด
+        </button>
+        <button onclick="UIController.closeSqlSchemaModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-tech text-xs">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: INTERACTIVE SPOT DETAIL ================= -->
+  <div id="modalBandSpot" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden" role="dialog" aria-modal="true">
+    <div class="glass-panel w-full max-w-md rounded-2xl p-6 border border-cyan-500/50 shadow-2xl relative space-y-4 animate-scaleUp">
+      <!-- Close Button -->
+      <button onclick="UIController.closeBandSpotModal()" class="absolute top-4 right-4 p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" aria-label="ปิดหน้าต่าง">
+        ✕
+      </button>
+
+      <div class="flex items-center gap-3">
+        <div id="modalBandColorSwatch" class="w-10 h-10 rounded-xl border-2 border-white/40 shadow-inner flex-shrink-0"></div>
+        <div>
+          <span id="modalBandIndex" class="text-xs font-tech text-cyan-400">แถบที่ 1</span>
+          <h3 id="modalBandColorName" class="text-lg font-bold font-tech text-white">สีน้ำตาล (Brown)</h3>
+        </div>
+      </div>
+
+      <div class="space-y-2 text-sm bg-slate-900/90 rounded-xl p-4 border border-slate-700">
+        <div class="flex justify-between border-b border-slate-800 pb-1.5">
+          <span class="text-slate-400">หน้าที่ของแถบ:</span>
+          <span id="modalBandRole" class="font-semibold text-cyan-300 font-tech">ตัวเลขหลักที่ 1</span>
+        </div>
+        <div class="flex justify-between border-b border-slate-800 pb-1.5">
+          <span class="text-slate-400">ค่าที่แทน:</span>
+          <span id="modalBandValue" class="font-bold text-white font-tech">1</span>
+        </div>
+        <div class="flex justify-between pt-0.5">
+          <span class="text-slate-400">คำอธิบาย:</span>
+          <span id="modalBandDesc" class="text-right text-xs text-slate-300 max-w-[200px]">เป็นตัวเลขตั้งต้นหลักแรก</span>
+        </div>
+      </div>
+
+      <!-- Quick Color Switch Test Palette inside Dialog -->
+      <div>
+        <label class="block text-xs text-slate-400 mb-2 font-tech">ทดลองเปลี่ยนสีของแถบนี้:</label>
+        <div id="modalBandPalette" class="flex flex-wrap gap-1.5">
+          <!-- Color chips -->
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button onclick="UIController.closeBandSpotModal()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-tech font-bold text-sm transition">
+          ปิดหน้าต่าง (Close / Esc)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: USER PROFILE ================= -->
+  <div id="modalProfile" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden" role="dialog">
+    <div class="glass-panel w-full max-w-sm rounded-2xl p-6 border border-cyan-500/40 space-y-4">
+      <h3 class="text-lg font-bold font-tech text-cyan-400 flex items-center gap-2">
+        <span>👤 ข้อมูลผู้เรียน</span>
+      </h3>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-300 mb-1">ชื่อเล่น หรือ ชื่อ-นามสกุล:</label>
+          <input type="text" id="inputProfileName" placeholder="เช่น ก้องเกียรติ หรือ สมชาย" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white font-tech focus:border-cyan-400 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-slate-300 mb-1">ห้องเรียน / กลุ่มเรียน:</label>
+          <input type="text" id="inputProfileClass" placeholder="เช่น ปวช.1/2 หรือ ชฟ.1" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white font-tech focus:border-cyan-400 focus:outline-none">
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="UIController.saveProfileModal()" class="flex-1 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold font-tech text-xs transition">
+          บันทึกข้อมูล
+        </button>
+        <button onclick="UIController.closeProfileModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 font-tech text-xs transition">
+          ยกเลิก
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: TUTORIAL ================= -->
+  <div id="modalTutorial" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden" role="dialog">
+    <div class="glass-panel w-full max-w-lg rounded-2xl p-6 border border-cyan-500/40 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+        <h3 class="text-base font-bold font-tech text-cyan-400">💡 วิธีการเล่น & คู่มือแนะนำ (Tutorial)</h3>
+        <button onclick="UIController.closeTutorialModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+          <h4 class="font-bold text-white text-sm font-tech">1. โหมด LEARN (ห้องเรียนรู้)</h4>
+          <p>เลือก 4, 5 หรือ 6 แถบสี คลิกที่แถบสีบนตัวต้านทานเพื่อดูหน้าที่ การอ่านหลัก ตัวคูณ และสูตรสมการสด</p>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+          <h4 class="font-bold text-white text-sm font-tech">2. โหมด SIMULATOR (ห้องทดลอง)</h4>
+          <p>เปลี่ยนสีตัวต้านทานได้ตามใจชอบ หรือพิมพ์ค่าโอห์มที่ต้องการเพื่อถอดรหัสย้อนกลับเป็นแถบสี</p>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+          <h4 class="font-bold text-white text-sm font-tech">3. โหมด CHALLENGE (ภารกิจจับเวลา)</h4>
+          <p>แข่งถอดรหัสสีภายในเวลา ตอบถูกติดต่อกันเพื่อสะสมคอมโบ (กดขอคำใบ้หัก 15 คะแนน)</p>
+          <ul class="list-disc pl-4 space-y-0.5 text-slate-400 pt-1">
+            <li><strong>EASY:</strong> 4 แถบสี (ตรวจค่าความต้านทาน)</li>
+            <li><strong>NORMAL:</strong> 4 และ 5 แถบสี (ตรวจค่าโอห์ม + ความคลาดเคลื่อน %)</li>
+            <li><strong>HARD:</strong> 4, 5, 6 แถบสี (ตรวจค่าโอห์ม + % + TCR)</li>
+          </ul>
+        </div>
+      </div>
+      <button onclick="UIController.closeTutorialModal()" class="w-full py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold font-tech text-xs">
+        เข้าใจแล้ว เริ่มเล่นเลย!
+      </button>
+    </div>
+  </div>
+
+  <script>
+  /**
+   * =========================================================================
+   * RESISTOR MASTER — ภารกิจถอดรหัสแถบสี
+   * Vocational Educational Interactive Game (ปวช.1 20100-1005)
+   * Modular Vanilla JS Architecture with Supabase Cloud Integration
+   * =========================================================================
+   */
+
+  const ResistorData = {
+    colors: {
+      black:  { id: 'black',  nameTh: 'ดำ',     nameEn: 'Black',  hex: '#18181b', border: '#3f3f46', digit: 0, mult: 1,           multExp: 0,  tol: null,  tcr: 250 },
+      brown:  { id: 'brown',  nameTh: 'น้ำตาล', nameEn: 'Brown',  hex: '#854d0e', border: '#a16207', digit: 1, mult: 10,          multExp: 1,  tol: 1,     tcr: 100 },
+      red:    { id: 'red',    nameTh: 'แดง',    nameEn: 'Red',    hex: '#dc2626', border: '#ef4444', digit: 2, mult: 100,         multExp: 2,  tol: 2,     tcr: 50 },
+      orange: { id: 'orange', nameTh: 'ส้ม',    nameEn: 'Orange', hex: '#ea580c', border: '#f97316', digit: 3, mult: 1000,        multExp: 3,  tol: null,  tcr: 15 },
+      yellow: { id: 'yellow', nameTh: 'เหลือง', nameEn: 'Yellow', hex: '#eab308', border: '#facc15', digit: 4, mult: 10000,       multExp: 4,  tol: null,  tcr: 25 },
+      green:  { id: 'green',  nameTh: 'เขียว',  nameEn: 'Green',  hex: '#16a34a', border: '#22c55e', digit: 5, mult: 100000,      multExp: 5,  tol: 0.5,   tcr: 20 },
+      blue:   { id: 'blue',   nameTh: 'ฟ้า',    nameEn: 'Blue',   hex: '#0284c7', border: '#38bdf8', digit: 6, mult: 1000000,     multExp: 6,  tol: 0.25,  tcr: 10 },
+      violet: { id: 'violet', nameTh: 'ม่วง',   nameEn: 'Violet', hex: '#9333ea', border: '#c084fc', digit: 7, mult: 10000000,    multExp: 7,  tol: 0.1,   tcr: 5 },
+      grey:   { id: 'grey',   nameTh: 'เทา',    nameEn: 'Grey',   hex: '#64748b', border: '#94a3b8', digit: 8, mult: 100000000,   multExp: 8,  tol: 0.05,  tcr: 1 },
+      white:  { id: 'white',  nameTh: 'ขาว',    nameEn: 'White',  hex: '#f8fafc', border: '#cbd5e1', digit: 9, mult: 1000000000,  multExp: 9,  tol: null,  tcr: null },
+      gold:   { id: 'gold',   nameTh: 'ทอง',    nameEn: 'Gold',   hex: '#d97706', border: '#fbbf24', digit: null, mult: 0.1,      multExp: -1, tol: 5,     tcr: null },
+      silver: { id: 'silver', nameTh: 'เงิน',   nameEn: 'Silver', hex: '#94a3b8', border: '#e2e8f0', digit: null, mult: 0.01,     multExp: -2, tol: 10,    tcr: null }
+    },
+
+    allowedDigits: ['black', 'brown', 'red', 'orange', 'yellow', 'green', 'blue', 'violet', 'grey', 'white'],
+    allowedDigit1: ['brown', 'red', 'orange', 'yellow', 'green', 'blue', 'violet', 'grey', 'white'],
+    allowedMultiplierCore: ['black', 'brown', 'red', 'orange', 'yellow', 'green', 'blue', 'violet', 'grey', 'white'],
+    allowedMultiplierAll: ['black', 'brown', 'red', 'orange', 'yellow', 'green', 'blue', 'violet', 'grey', 'white', 'gold', 'silver'],
+    allowedTolerance: ['brown', 'red', 'green', 'blue', 'violet', 'grey', 'gold', 'silver'],
+    allowedTCR: ['black', 'brown', 'red', 'orange', 'yellow', 'green', 'blue', 'violet', 'grey'],
+
+    getRoleInfo(totalBands, index) {
+      if (totalBands === 4) {
+        if (index === 0) return { type: 'digit1', roleTh: 'ตัวเลขหลักที่ 1 (First Digit)', desc: 'ตัวเลขตั้งต้นหลักแรก (ไม่เป็นสีดำ)' };
+        if (index === 1) return { type: 'digit', roleTh: 'ตัวเลขหลักที่ 2 (Second Digit)', desc: 'ตัวเลขตั้งต้นหลักที่สอง (0-9)' };
+        if (index === 2) return { type: 'multiplier', roleTh: 'ตัวคูณ (Multiplier)', desc: 'เลขยกกำลังฐานสิบที่นำมาคูณกับตัวเลขหลัก' };
+        if (index === 3) return { type: 'tolerance', roleTh: 'ความคลาดเคลื่อน (Tolerance)', desc: 'เปอร์เซ็นต์ความคลาดเคลื่อนที่ยอมรับได้ (±%)' };
+      } else if (totalBands === 5) {
+        if (index === 0) return { type: 'digit1', roleTh: 'ตัวเลขหลักที่ 1 (First Digit)', desc: 'ตัวเลขตั้งต้นหลักแรก' };
+        if (index === 1) return { type: 'digit', roleTh: 'ตัวเลขหลักที่ 2 (Second Digit)', desc: 'ตัวเลขตั้งต้นหลักที่สอง' };
+        if (index === 2) return { type: 'digit', roleTh: 'ตัวเลขหลักที่ 3 (Third Digit)', desc: 'ตัวเลขตั้งต้นหลักที่สาม' };
+        if (index === 3) return { type: 'multiplier', roleTh: 'ตัวคูณ (Multiplier)', desc: 'เลขยกกำลังฐานสิบสำหรับคูณเลข 3 หลัก' };
+        if (index === 4) return { type: 'tolerance', roleTh: 'ความคลาดเคลื่อน (Tolerance)', desc: 'เปอร์เซ็นต์ความคลาดเคลื่อน (±%)' };
+      } else if (totalBands === 6) {
+        if (index === 0) return { type: 'digit1', roleTh: 'ตัวเลขหลักที่ 1', desc: 'ตัวเลขตั้งต้นหลักแรก' };
+        if (index === 1) return { type: 'digit', roleTh: 'ตัวเลขหลักที่ 2', desc: 'ตัวเลขตั้งต้นหลักที่สอง' };
+        if (index === 2) return { type: 'digit', roleTh: 'ตัวเลขหลักที่ 3', desc: 'ตัวเลขตั้งต้นหลักที่สาม' };
+        if (index === 3) return { type: 'multiplier', roleTh: 'ตัวคูณ', desc: 'เลขยกกำลังฐานสิบสำหรับคูณเลข 3 หลัก' };
+        if (index === 4) return { type: 'tolerance', roleTh: 'ความคลาดเคลื่อน (±%)', desc: 'เปอร์เซ็นต์ความคลาดเคลื่อน' };
+        if (index === 5) return { type: 'tcr', roleTh: 'สัมประสิทธิ์อุณหภูมิ (TCR)', desc: 'อัตราการเปลี่ยนแปลงความต้านทานตามอุณหภูมิ (ppm/°C)' };
+      }
+      return { type: 'unknown', roleTh: 'แถบสี', desc: '-' };
+    }
+  };
+
+  const SupabaseService = {
+    client: null,
+    isConnected: false,
+    storageKeyConfig: 'resistor_supabase_config_v1',
+
+    // Supabase project credentials integrated
+    config: {
+      url: 'https://dfykptitjqjchvslecup.supabase.co',
+      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmeWtwdGl0anFqY2h2c2xlY3VwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MTc4MTksImV4cCI6MjEwNzk5MzgxOX0.9Va8dlSETJ_ifUaJjqtskCNwabtA9ho-nOYPt5yDF38'
+    },
+
+    getSqlSchema() {
+      return `-- 1. ตารางข้อมูลผู้เรียนและสถานะออนไลน์ (resistor_students)
+CREATE TABLE IF NOT EXISTS public.resistor_students (
+    student_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    class_name TEXT NOT NULL,
+    is_online BOOLEAN DEFAULT true,
+    last_active_at TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 2. ตารางบันทึกสถิติการเล่นและการทดลองทุกโหมด (resistor_activities)
+CREATE TABLE IF NOT EXISTS public.resistor_activities (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    student_id TEXT REFERENCES public.resistor_students(student_id) ON DELETE CASCADE,
+    student_name TEXT NOT NULL,
+    class_name TEXT NOT NULL,
+    mode TEXT NOT NULL, -- 'learn', 'simulator', 'challenge'
+    difficulty TEXT,    -- 'easy', 'normal', 'hard', 'custom'
+    score INTEGER DEFAULT 0,
+    accuracy NUMERIC DEFAULT 0,
+    max_combo INTEGER DEFAULT 0,
+    total_time INTEGER DEFAULT 0,
+    details JSONB,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 3. กำหนดสิทธิ์ความปลอดภัย Row Level Security (RLS) สำหรับ Web Client
+ALTER TABLE public.resistor_students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.resistor_activities ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read and insert on students" 
+ON public.resistor_students FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public read and insert on activities" 
+ON public.resistor_activities FOR ALL USING (true) WITH CHECK (true);
+`;
+    },
+
+    init() {
+      try {
+        const saved = localStorage.getItem(this.storageKeyConfig);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.url && parsed.anonKey) {
+            this.config = parsed;
+          }
+        }
+      } catch (e) {}
+
+      if (this.config.url && this.config.anonKey && window.supabase) {
+        try {
+          this.client = window.supabase.createClient(this.config.url, this.config.anonKey);
+          this.isConnected = true;
+          this.updateStatusBadge(true);
+        } catch (e) {
+          console.warn('Supabase initialization failed:', e);
+          this.updateStatusBadge(false);
+        }
+      } else {
+        this.updateStatusBadge(false);
+      }
+    },
+
+    saveAndConnect() {
+      const url = document.getElementById('inputSupabaseUrl').value.trim();
+      const key = document.getElementById('inputSupabaseAnonKey').value.trim();
+
+      if (!url || !key) {
+        UIController.openCustomModal('แจ้งเตือน', 'กรุณากรอกทั้ง Project URL และ Anon Key ให้ครบถ้วน');
+        return;
+      }
+
+      this.config = { url, anonKey: key };
+      try {
+        localStorage.setItem(this.storageKeyConfig, JSON.stringify(this.config));
+        this.init();
+        if (this.isConnected) {
+          UIController.closeSupabaseConfigModal();
+          UIController.openCustomModal('สำเร็จ', 'เชื่อมต่อกับ Supabase เรียบร้อยแล้ว!');
+          const p = ScoreManager.getProfile();
+          if (p.studentId) this.registerStudent(p.studentId, p.name, p.className);
+          ScoreboardController.renderLeaderboard();
+          TeacherController.render();
+        }
+      } catch (err) {
+        UIController.openCustomModal('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อได้: ' + err.message);
+      }
+    },
+
+    updateStatusBadge(connected) {
+      this.isConnected = connected;
+      const indicator = document.getElementById('supabaseIndicator');
+      const text = document.getElementById('supabaseStatusText');
+      if (connected) {
+        indicator.className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400';
+        text.innerText = 'Supabase Cloud (Online)';
+        text.className = 'hidden sm:inline text-emerald-300';
+      } else {
+        indicator.className = 'w-2 h-2 rounded-full bg-slate-500';
+        text.innerText = 'Offline (Local)';
+        text.className = 'hidden sm:inline text-slate-400';
+      }
+    },
+
+    async registerStudent(studentId, name, className) {
+      if (!this.isConnected || !this.client) return;
+      try {
+        await this.client
+          .from('resistor_students')
+          .upsert({
+            student_id: studentId,
+            name: name,
+            class_name: className,
+            is_online: true,
+            last_active_at: new Date().toISOString()
+          }, { onConflict: 'student_id' });
+      } catch (e) {
+        console.warn('Supabase registerStudent failed:', e);
+      }
+    },
+
+    async sendHeartbeat(studentId) {
+      if (!this.isConnected || !this.client || !studentId) return;
+      try {
+        await this.client
+          .from('resistor_students')
+          .update({ last_active_at: new Date().toISOString(), is_online: true })
+          .eq('student_id', studentId);
+      } catch (e) {}
+    },
+
+    async logActivity(activityData) {
+      ScoreManager.logLocalActivity(activityData);
+
+      if (!this.isConnected || !this.client) return;
+      try {
+        await this.client
+          .from('resistor_activities')
+          .insert({
+            student_id: activityData.studentId,
+            student_name: activityData.studentName,
+            class_name: activityData.className,
+            mode: activityData.mode,
+            difficulty: activityData.difficulty || null,
+            score: activityData.score || 0,
+            accuracy: activityData.accuracy || 0,
+            max_combo: activityData.maxCombo || 0,
+            total_time: activityData.totalTime || 0,
+            details: activityData.details || null
+          });
+      } catch (e) {
+        console.warn('Supabase logActivity error:', e);
+      }
+    },
+
+    async fetchCloudLeaderboard(difficulty = 'easy') {
+      if (!this.isConnected || !this.client) return null;
+      try {
+        const { data, error } = await this.client
+          .from('resistor_activities')
+          .select('student_id, student_name, class_name, score, accuracy, total_time, created_at')
+          .eq('mode', 'challenge')
+          .eq('difficulty', difficulty)
+          .order('score', { ascending: false })
+          .order('accuracy', { ascending: false })
+          .order('total_time', { ascending: true })
+          .limit(10);
+        if (error) throw error;
+        return data;
+      } catch (e) {
+        console.warn('fetchCloudLeaderboard failed:', e);
+        return null;
+      }
+    },
+
+    async fetchActiveStudents() {
+      if (!this.isConnected || !this.client) return null;
+      try {
+        const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const { data, error } = await this.client
+          .from('resistor_students')
+          .select('*')
+          .gte('last_active_at', tenMinsAgo)
+          .order('last_active_at', { ascending: false });
+        if (error) throw error;
+        return data;
+      } catch (e) {
+        return null;
+      }
+    }
+  };
+
+  const ScoreManager = {
+    STORAGE_KEY: 'resistor_master_scores_v1',
+    PROFILE_KEY: 'resistor_master_profile_v1',
+    HISTORY_KEY: 'resistor_master_history_v1',
+    ACTIVITIES_KEY: 'resistor_master_activities_v1',
+
+    getProfile() {
+      try {
+        const data = localStorage.getItem(this.PROFILE_KEY);
+        return data ? JSON.parse(data) : { studentId: '', name: '', className: '' };
+      } catch (e) {
+        return { studentId: '', name: '', className: '' };
+      }
+    },
+
+    saveProfile(studentId, name, className) {
+      const profile = {
+        studentId: studentId.trim(),
+        name: name.trim() || 'ผู้เรียน',
+        className: className.trim() || 'ปวช.1'
+      };
+      try {
+        localStorage.setItem(this.PROFILE_KEY, JSON.stringify(profile));
+      } catch (e) {}
+
+      SupabaseService.registerStudent(profile.studentId, profile.name, profile.className);
+      return profile;
+    },
+
+    logLocalActivity(activity) {
+      try {
+        const list = JSON.parse(localStorage.getItem(this.ACTIVITIES_KEY) || '[]');
+        list.unshift({
+          ...activity,
+          timestamp: new Date().toISOString()
+        });
+        localStorage.setItem(this.ACTIVITIES_KEY, JSON.stringify(list.slice(0, 100)));
+      } catch (e) {}
+    },
+
+    getLocalActivities() {
+      try {
+        return JSON.parse(localStorage.getItem(this.ACTIVITIES_KEY) || '[]');
+      } catch (e) {
+        return [];
+      }
+    },
+
+    getScores(difficulty) {
+      try {
+        const allScores = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+        return allScores[difficulty] || [];
+      } catch (e) {
+        return [];
+      }
+    },
+
+    saveRoundScore(roundData) {
+      const difficulty = roundData.difficulty;
+      try {
+        const allScores = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+        if (!allScores[difficulty]) allScores[difficulty] = [];
+
+        allScores[difficulty].push({
+          studentId: roundData.studentId,
+          playerName: roundData.playerName,
+          className: roundData.className,
+          score: roundData.score,
+          accuracy: roundData.accuracy,
+          totalTime: roundData.totalTime,
+          date: new Date().toLocaleDateString('th-TH')
+        });
+
+        allScores[difficulty].sort((a, b) => b.score - a.score || b.accuracy - a.accuracy || a.totalTime - b.totalTime);
+        allScores[difficulty] = allScores[difficulty].slice(0, 10);
+
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allScores));
+
+        const history = JSON.parse(localStorage.getItem(this.HISTORY_KEY) || '[]');
+        history.unshift({
+          ...roundData,
+          timestamp: new Date().toISOString()
+        });
+        localStorage.setItem(this.HISTORY_KEY, JSON.stringify(history.slice(0, 50)));
+
+        SupabaseService.logActivity({
+          studentId: roundData.studentId,
+          studentName: roundData.playerName,
+          className: roundData.className,
+          mode: 'challenge',
+          difficulty: roundData.difficulty,
+          score: roundData.score,
+          accuracy: roundData.accuracy,
+          maxCombo: roundData.maxCombo,
+          totalTime: roundData.totalTime,
+          details: roundData.details
+        });
+      } catch (e) {
+        console.warn('Storage save error:', e);
+      }
+    },
+
+    getHistory() {
+      try {
+        return JSON.parse(localStorage.getItem(this.HISTORY_KEY) || '[]');
+      } catch (e) {
+        return [];
+      }
+    },
+
+    clearAllData() {
+      try {
+        localStorage.removeItem(this.STORAGE_KEY);
+        localStorage.removeItem(this.HISTORY_KEY);
+        localStorage.removeItem(this.ACTIVITIES_KEY);
+      } catch (e) {}
+    }
+  };
+
+  const LoginController = {
+    init() {
+      const profile = ScoreManager.getProfile();
+      if (!profile.studentId || !profile.name) {
+        this.showLoginModal(false);
+      } else {
+        document.getElementById('modalLoginGateway').classList.add('hidden');
+        SupabaseService.registerStudent(profile.studentId, profile.name, profile.className);
+      }
+    },
+
+    showLoginModal(allowCancel = false) {
+      const modal = document.getElementById('modalLoginGateway');
+      const profile = ScoreManager.getProfile();
+      document.getElementById('inputLoginStudentId').value = profile.studentId || '';
+      document.getElementById('inputLoginName').value = profile.name || '';
+      document.getElementById('inputLoginClass').value = profile.className || '';
+      modal.classList.remove('hidden');
+    },
+
+    handleLoginSubmit(event) {
+      event.preventDefault();
+      AudioFX.playClick();
+      const studentId = document.getElementById('inputLoginStudentId').value;
+      const name = document.getElementById('inputLoginName').value;
+      const className = document.getElementById('inputLoginClass').value;
+
+      const profile = ScoreManager.saveProfile(studentId, name, className);
+      UIController.updateProfileBadge(profile);
+
+      document.getElementById('modalLoginGateway').classList.add('hidden');
+      UIController.openCustomModal('ยินดีต้อนรับสู่ห้องทดลอง!', `
+        <div class="space-y-1 text-sm font-tech">
+          <p>รหัสนักเรียน: <strong class="text-cyan-400">${profile.studentId}</strong></p>
+          <p>ชื่อ-นามสกุล: <strong class="text-white">${profile.name}</strong> (${profile.className})</p>
+          <p class="text-xs text-slate-400 pt-2">ระบบได้บันทึกตัวตนของคุณและเชื่อมต่อ Supabase เรียบร้อยแล้ว ทุกสถิติจะถูกบันทึกอัตโนมัติ</p>
+        </div>
+      `);
+    }
+  };
+
+  const AudioFX = {
+    ctx: null,
+    enabled: true,
+
+    init() {
+      if (!this.ctx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          this.ctx = new AudioContext();
+        }
+      }
+    },
+
+    toggle() {
+      this.enabled = !this.enabled;
+      document.getElementById('iconAudioOn').classList.toggle('hidden', !this.enabled);
+      document.getElementById('iconAudioOff').classList.toggle('hidden', this.enabled);
+      if (this.enabled) this.playTone(523.25, 0.1, 'sine');
+    },
+
+    playTone(freq, duration = 0.15, type = 'sine', gainVal = 0.15) {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      try {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+      } catch (e) {
+        console.warn('Audio play failed:', e);
+      }
+    },
+
+    playClick() {
+      this.playTone(800, 0.05, 'triangle', 0.1);
+    },
+
+    playCorrect() {
+      if (!this.enabled) return;
+      this.init();
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        setTimeout(() => this.playTone(freq, 0.12, 'sine', 0.18), idx * 80);
+      });
+    },
+
+    playWrong() {
+      if (!this.enabled) return;
+      this.init();
+      this.playTone(180, 0.25, 'sawtooth', 0.2);
+      setTimeout(() => this.playTone(140, 0.35, 'sawtooth', 0.2), 150);
+    },
+
+    playCombo() {
+      if (!this.enabled) return;
+      this.init();
+      const notes = [659.25, 783.99, 987.77, 1318.51];
+      notes.forEach((freq, idx) => {
+        setTimeout(() => this.playTone(freq, 0.15, 'triangle', 0.2), idx * 60);
+      });
+    }
+  };
+
+  const ResistorRenderer = {
+    render(containerId, bandColors, options = {}) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const totalBands = bandColors.length;
+      const interactive = options.interactive !== false;
+      const selectedIndex = options.selectedIndex ?? -1;
+
+      const width = 640;
+      const height = 180;
+      const bodyX = 140;
+      const bodyY = 40;
+      const bodyW = 360;
+      const bodyH = 100;
+      const leadY = 90;
+
+      let bandPositions = [];
+      if (totalBands === 4) {
+        bandPositions = [190, 250, 310, 430];
+      } else if (totalBands === 5) {
+        bandPositions = [185, 230, 275, 335, 435];
+      } else if (totalBands === 6) {
+        bandPositions = [180, 220, 260, 310, 410, 455];
+      }
+
+      let svg = `
+        <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto max-h-56 filter drop-shadow-xl select-none" style="overflow: visible;">
+          <defs>
+            <linearGradient id="bodyGrad_${containerId}" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#fdfbf7" />
+              <stop offset="25%" stop-color="#eed8b7" />
+              <stop offset="50%" stop-color="#e3c79e" />
+              <stop offset="85%" stop-color="#cbab7e" />
+              <stop offset="100%" stop-color="#8c6f48" />
+            </linearGradient>
+
+            <linearGradient id="leadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#94a3b8" />
+              <stop offset="40%" stop-color="#f8fafc" />
+              <stop offset="70%" stop-color="#64748b" />
+              <stop offset="100%" stop-color="#334155" />
+            </linearGradient>
+
+            <linearGradient id="sheenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4" />
+              <stop offset="40%" stop-color="#ffffff" stop-opacity="0.05" />
+              <stop offset="75%" stop-color="#000000" stop-opacity="0.0" />
+              <stop offset="100%" stop-color="#000000" stop-opacity="0.45" />
+            </linearGradient>
+          </defs>
+
+          <rect x="20" y="${leadY - 4}" width="${bodyX - 20}" height="8" rx="3" fill="url(#leadGrad)" />
+          <rect x="${bodyX + bodyW}" y="${leadY - 4}" width="${width - 20 - (bodyX + bodyW)}" height="8" rx="3" fill="url(#leadGrad)" />
+
+          <path d="
+            M ${bodyX + 30} ${bodyY}
+            H ${bodyX + bodyW - 30}
+            C ${bodyX + bodyW + 15} ${bodyY}, ${bodyX + bodyW + 15} ${bodyY + bodyH}, ${bodyX + bodyW - 30} ${bodyY + bodyH}
+            H ${bodyX + 30}
+            C ${bodyX - 15} ${bodyY + bodyH}, ${bodyX - 15} ${bodyY}, ${bodyX + 30} ${bodyY}
+            Z
+          " fill="url(#bodyGrad_${containerId})" stroke="#78593a" stroke-width="2.5" />
+
+          <path d="
+            M ${bodyX + 30} ${bodyY}
+            H ${bodyX + bodyW - 30}
+            C ${bodyX + bodyW + 15} ${bodyY}, ${bodyX + bodyW + 15} ${bodyY + bodyH}, ${bodyX + bodyW - 30} ${bodyY + bodyH}
+            H ${bodyX + 30}
+            C ${bodyX - 15} ${bodyY + bodyH}, ${bodyX - 15} ${bodyY}, ${bodyX + 30} ${bodyY}
+            Z
+          " fill="url(#sheenGrad)" pointer-events="none" />
+      `;
+
+      const bandWidth = 20;
+      bandColors.forEach((colorKey, index) => {
+        const colorData = ResistorData.colors[colorKey] || ResistorData.colors.black;
+        const xPos = bandPositions[index] - (bandWidth / 2);
+        const isSelected = index === selectedIndex;
+        const isDimmed = selectedIndex >= 0 && !isSelected;
+        const roleInfo = ResistorData.getRoleInfo(totalBands, index);
+
+        svg += `
+          <g id="band_group_${containerId}_${index}" 
+             class="${interactive ? 'cursor-pointer transition-all duration-200' : ''}" 
+             ${interactive ? `onclick="UIController.handleBandClick('${containerId}', ${index})"` : ''}
+             role="button"
+             tabindex="${interactive ? '0' : '-1'}"
+             aria-label="แถบที่ ${index + 1} สี${colorData.nameTh} (${roleInfo.roleTh})">
+            
+            <rect x="${xPos}" y="${bodyY + 0.5}" width="${bandWidth}" height="${bodyH - 1}" 
+                  fill="${colorData.hex}" 
+                  stroke="${isSelected ? '#00f0ff' : colorData.border}" 
+                  stroke-width="${isSelected ? '3.5' : '1.5'}"
+                  class="${isSelected ? 'band-selected' : ''} ${isDimmed ? 'band-dimmed' : ''}"
+                  rx="1" />
+
+            <rect x="${xPos}" y="${bodyY + 0.5}" width="${bandWidth}" height="${bodyH - 1}" 
+                  fill="url(#sheenGrad)" 
+                  pointer-events="none" 
+                  class="${isDimmed ? 'band-dimmed' : ''}" />
+
+            ${interactive ? `
+              <circle cx="${bandPositions[index]}" cy="${bodyY + bodyH + 18}" r="8" 
+                      fill="${isSelected ? '#00f0ff' : '#1e293b'}" 
+                      stroke="${isSelected ? '#ffffff' : '#00f0ff'}" 
+                      stroke-width="2.5" 
+                      class="transition-transform hover:scale-125" />
+              <text x="${bandPositions[index]}" y="${bodyY + bodyH + 22}" 
+                    text-anchor="middle" font-family="'Chakra Petch', sans-serif" 
+                    font-size="9" font-weight="bold" 
+                    fill="${isSelected ? '#0a1128' : '#ffffff'}">
+                ${index + 1}
+              </text>
+            ` : ''}
+
+            ${isSelected ? `
+              <line x1="${bandPositions[index]}" y1="${bodyY - 4}" x2="${bandPositions[index]}" y2="${bodyY - 20}" stroke="#00f0ff" stroke-width="2.5" stroke-dasharray="3,2" />
+              <circle cx="${bandPositions[index]}" cy="${bodyY - 20}" r="4" fill="#00f0ff" />
+            ` : ''}
+          </g>
+        `;
+      });
+
+      svg += `</svg>`;
+      container.innerHTML = svg;
+    }
+  };
+
+  const Calculator = {
+    calculate(bandColors) {
+      const totalBands = bandColors.length;
+      const colors = ResistorData.colors;
+
+      let valueOhms = 0;
+      let digitsStr = '';
+      let multiplier = 1;
+      let tolerance = 5;
+      let tcr = null;
+
+      if (totalBands === 4) {
+        const d1 = colors[bandColors[0]]?.digit ?? 0;
+        const d2 = colors[bandColors[1]]?.digit ?? 0;
+        multiplier = colors[bandColors[2]]?.mult ?? 1;
+        tolerance = colors[bandColors[3]]?.tol ?? 5;
+        digitsStr = `${d1}${d2}`;
+        valueOhms = (d1 * 10 + d2) * multiplier;
+      } else if (totalBands === 5 || totalBands === 6) {
+        const d1 = colors[bandColors[0]]?.digit ?? 0;
+        const d2 = colors[bandColors[1]]?.digit ?? 0;
+        const d3 = colors[bandColors[2]]?.digit ?? 0;
+        multiplier = colors[bandColors[3]]?.mult ?? 1;
+        tolerance = colors[bandColors[4]]?.tol ?? 5;
+        digitsStr = `${d1}${d2}${d3}`;
+        valueOhms = (d1 * 100 + d2 * 10 + d3) * multiplier;
+
+        if (totalBands === 6) {
+          tcr = colors[bandColors[5]]?.tcr ?? null;
+        }
+      }
+
+      return {
+        valueOhms,
+        digitsStr,
+        multiplier,
+        tolerance,
+        tcr,
+        formatted: this.formatOhms(valueOhms)
+      };
+    },
+
+    formatOhms(ohms) {
+      if (ohms >= 1e9) {
+        const val = ohms / 1e9;
+        return { value: parseFloat(val.toFixed(2)), unit: 'GΩ', multiplier: 1e9, display: `${parseFloat(val.toFixed(2))} GΩ` };
+      } else if (ohms >= 1e6) {
+        const val = ohms / 1e6;
+        return { value: parseFloat(val.toFixed(2)), unit: 'MΩ', multiplier: 1e6, display: `${parseFloat(val.toFixed(2))} MΩ` };
+      } else if (ohms >= 1e3) {
+        const val = ohms / 1e3;
+        return { value: parseFloat(val.toFixed(2)), unit: 'kΩ', multiplier: 1e3, display: `${parseFloat(val.toFixed(2))} kΩ` };
+      } else {
+        return { value: parseFloat(ohms.toFixed(2)), unit: 'Ω', multiplier: 1, display: `${parseFloat(ohms.toFixed(2))} Ω` };
+      }
+    },
+
+    reverseEngineering(targetOhms, totalBands = 4) {
+      if (isNaN(targetOhms) || targetOhms <= 0) return { success: false, msg: 'กรุณากรอกค่าที่มากกว่า 0' };
+
+      const numDigits = (totalBands === 4) ? 2 : 3;
+      const exp = Math.floor(Math.log10(targetOhms));
+      const normalized = targetOhms / Math.pow(10, exp);
+      const sigDigitsVal = Math.round(normalized * Math.pow(10, numDigits - 1));
+      const multExp = exp - (numDigits - 1);
+
+      const colors = ResistorData.colors;
+      const multColorEntry = Object.values(colors).find(c => c.multExp === multExp);
+
+      if (!multColorEntry) {
+        return {
+          success: false,
+          msg: `ค่าความต้านทาน ${targetOhms} Ω เกินขอบเขตตัวคูณมาตรฐานที่รองรับ (10⁻² ถึง 10⁹ Ω)`
+        };
+      }
+
+      const digitsArr = sigDigitsVal.toString().split('').map(Number);
+      if (digitsArr.length !== numDigits || digitsArr[0] === 0) {
+        return {
+          success: false,
+          msg: `ไม่สามารถแทนค่า ${targetOhms} Ω ได้อย่างเที่ยงตรงด้วยจำนวนหลักของตัวต้านทาน ${totalBands} แถบสี (ต้องใช้เลขนัยสำคัญ ${numDigits} หลัก)`
+        };
+      }
+
+      const digitColors = digitsArr.map(d => {
+        return Object.values(colors).find(c => c.digit === d)?.id;
+      });
+
+      const resultBands = [...digitColors, multColorEntry.id, 'gold'];
+      if (totalBands === 6) resultBands.push('brown');
+
+      return {
+        success: true,
+        bands: resultBands,
+        calculated: this.calculate(resultBands)
+      };
+    }
+  };
+
+  const QuestionGenerator = {
+    recentQuestions: [],
+
+    generate(bandCount = 4, difficulty = 'easy') {
+      let bands = [];
+      let maxAttempts = 10;
+      let attempt = 0;
+
+      while (attempt < maxAttempts) {
+        attempt++;
+        bands = [];
+
+        const d1 = this.pickRandom(ResistorData.allowedDigit1);
+        bands.push(d1);
+
+        const d2 = this.pickRandom(ResistorData.allowedDigits);
+        bands.push(d2);
+
+        if (bandCount >= 5) {
+          const d3 = this.pickRandom(ResistorData.allowedDigits);
+          bands.push(d3);
+        }
+
+        let multChoices = ResistorData.allowedMultiplierCore;
+        if (difficulty === 'easy') {
+          multChoices = ['black', 'brown', 'red', 'orange', 'yellow', 'green', 'blue'];
+        }
+        const mult = this.pickRandom(multChoices);
+        bands.push(mult);
+
+        let tolChoices = ResistorData.allowedTolerance;
+        if (difficulty === 'easy') {
+          tolChoices = ['gold', 'silver', 'brown', 'red'];
+        }
+        const tol = this.pickRandom(tolChoices);
+        bands.push(tol);
+
+        if (bandCount === 6) {
+          const tcr = this.pickRandom(ResistorData.allowedTCR);
+          bands.push(tcr);
+        }
+
+        const signature = bands.join('-');
+        if (!this.recentQuestions.includes(signature)) {
+          this.recentQuestions.push(signature);
+          if (this.recentQuestions.length > 20) this.recentQuestions.shift();
+          break;
+        }
+      }
+
+      const solution = Calculator.calculate(bands);
+      return {
+        bandCount,
+        bands,
+        solution
+      };
+    },
+
+    pickRandom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+  };
+
+  const AnswerValidator = {
+    validate(userAnswer, question, difficulty) {
+      const solution = question.solution;
+      const expectedOhms = solution.valueOhms;
+
+      const userValue = parseFloat(userAnswer.value);
+      const userMultiplier = parseFloat(userAnswer.unitMultiplier || 1);
+      const userTotalOhms = userValue * userMultiplier;
+
+      let isResistanceCorrect = false;
+      if (!isNaN(userTotalOhms) && userTotalOhms > 0) {
+        const diffRatio = Math.abs(userTotalOhms - expectedOhms) / expectedOhms;
+        isResistanceCorrect = diffRatio < 0.001;
+      }
+
+      let isToleranceCorrect = true;
+      if (difficulty !== 'easy') {
+        const userTol = parseFloat(userAnswer.tolerance);
+        isToleranceCorrect = Math.abs(userTol - solution.tolerance) < 0.001;
+      }
+
+      let isTCRCorrect = true;
+      if (difficulty === 'hard' && question.bandCount === 6) {
+        const userTCR = parseInt(userAnswer.tcr, 10);
+        isTCRCorrect = userTCR === solution.tcr;
+      }
+
+      const allCorrect = isResistanceCorrect && isToleranceCorrect && isTCRCorrect;
+
+      let scoreEarned = 0;
+      if (difficulty === 'easy') {
+        if (isResistanceCorrect) scoreEarned = 100;
+      } else if (difficulty === 'normal') {
+        if (isResistanceCorrect) scoreEarned += 80;
+        if (isToleranceCorrect) scoreEarned += 20;
+      } else if (difficulty === 'hard') {
+        if (question.bandCount === 6) {
+          if (isResistanceCorrect) scoreEarned += 70;
+          if (isToleranceCorrect) scoreEarned += 20;
+          if (isTCRCorrect) scoreEarned += 10;
+        } else {
+          if (isResistanceCorrect) scoreEarned += 80;
+          if (isToleranceCorrect) scoreEarned += 20;
+        }
+      }
+
+      return {
+        allCorrect,
+        isResistanceCorrect,
+        isToleranceCorrect,
+        isTCRCorrect,
+        scoreEarned,
+        expectedOhms,
+        userTotalOhms,
+        solution
+      };
+    }
+  };
+
+  const ChallengeEngine = {
+    state: {
+      active: false,
+      difficulty: 'easy',
+      totalQuestions: 10,
+      timePerQuestion: 40,
+      currentQIndex: 0,
+      score: 0,
+      combo: 0,
+      maxCombo: 0,
+      correctCount: 0,
+      hintsUsedInRound: 0,
+      usedHintInThisQ: false,
+      startTime: 0,
+      totalElapsedTime: 0,
+      currentQuestion: null,
+      timerInterval: null,
+      timeRemaining: 0,
+      roundHistory: []
+    },
+
+    startMission(difficulty = 'easy') {
+      const configMap = {
+        easy: { qCount: 10, time: 40, bands: [4] },
+        normal: { qCount: 12, time: 25, bands: [4, 5] },
+        hard: { qCount: 15, time: 15, bands: [4, 5, 6] }
+      };
+
+      const cfg = configMap[difficulty] || configMap.easy;
+      this.initMissionConfig(difficulty, cfg.qCount, cfg.time, cfg.bands);
+    },
+
+    startCustomMission() {
+      const qCount = parseInt(document.getElementById('customQCount').value, 10) || 10;
+      const timePerQ = parseInt(document.getElementById('customTimePerQ').value, 10) || 30;
+      const bandType = document.getElementById('customBandType').value;
+      
+      let bands = [4, 5, 6];
+      if (bandType === '4') bands = [4];
+      else if (bandType === '5') bands = [5];
+      else if (bandType === '6') bands = [6];
+
+      this.initMissionConfig('custom', qCount, timePerQ, bands);
+    },
+
+    initMissionConfig(difficulty, totalQuestions, timePerQuestion, allowedBands) {
+      AudioFX.playClick();
+      this.state = {
+        active: true,
+        difficulty,
+        totalQuestions,
+        timePerQuestion,
+        allowedBands,
+        currentQIndex: 0,
+        score: 0,
+        combo: 0,
+        maxCombo: 0,
+        correctCount: 0,
+        hintsUsedInRound: 0,
+        usedHintInThisQ: false,
+        startTime: Date.now(),
+        totalElapsedTime: 0,
+        currentQuestion: null,
+        timerInterval: null,
+        timeRemaining: timePerQuestion,
+        roundHistory: []
+      };
+
+      document.getElementById('challengeLobby').classList.add('hidden');
+      document.getElementById('challengeSummaryScreen').classList.add('hidden');
+      document.getElementById('challengeActiveGame').classList.remove('hidden');
+
+      const colTol = document.getElementById('colAnsTolerance');
+      const colTCR = document.getElementById('colAnsTCR');
+
+      if (difficulty === 'easy') {
+        colTol.classList.add('hidden');
+        colTCR.classList.add('hidden');
+      } else {
+        colTol.classList.remove('hidden');
+        colTCR.classList.add('hidden');
+      }
+
+      this.loadNextQuestion();
+    },
+
+    loadNextQuestion() {
+      if (this.state.currentQIndex >= this.state.totalQuestions) {
+        this.finishMission();
+        return;
+      }
+
+      this.state.currentQIndex++;
+      this.state.usedHintInThisQ = false;
+      document.getElementById('gameHintUsedIndicator').innerText = '';
+
+      const bandCount = this.state.allowedBands[Math.floor(Math.random() * this.state.allowedBands.length)];
+      this.state.currentQuestion = QuestionGenerator.generate(bandCount, this.state.difficulty);
+
+      ResistorRenderer.render('challengeResistorContainer', this.state.currentQuestion.bands, {
+        interactive: true,
+        showLabels: false
+      });
+
+      this.renderChallengeSpotBadges(bandCount);
+
+      const colTCR = document.getElementById('colAnsTCR');
+      if (this.state.difficulty === 'hard' && bandCount === 6) {
+        colTCR.classList.remove('hidden');
+      } else {
+        colTCR.classList.add('hidden');
+      }
+
+      const inputVal = document.getElementById('inputAnsValue');
+      inputVal.value = '';
+      inputVal.focus();
+
+      document.getElementById('challengeFeedbackBox').classList.add('hidden');
+      document.getElementById('btnSubmitAnswer').disabled = false;
+
+      document.getElementById('gameHudQNum').innerText = `${this.state.currentQIndex} / ${this.state.totalQuestions}`;
+      document.getElementById('gameHudDifficulty').innerText = this.state.difficulty.toUpperCase();
+      document.getElementById('gameHudScore').innerText = this.state.score;
+      document.getElementById('gameHudCombo').innerText = this.state.combo;
+
+      this.startQuestionTimer();
+    },
+
+    renderChallengeSpotBadges(bandCount) {
+      const container = document.getElementById('challengeBandBadges');
+      let html = '';
+      for (let i = 0; i < bandCount; i++) {
+        const role = ResistorData.getRoleInfo(bandCount, i);
+        html += `
+          <button onclick="ChallengeEngine.showRoleSpotHint(${i})" class="px-2.5 py-1 rounded bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-xs text-slate-300 font-tech transition">
+            แถบ ${i + 1}: ${role.roleTh.split('(')[0]}
+          </button>
+        `;
+      }
+      container.innerHTML = html;
+    },
+
+    showRoleSpotHint(index) {
+      const role = ResistorData.getRoleInfo(this.state.currentQuestion.bandCount, index);
+      const colorKey = this.state.currentQuestion.bands[index];
+      const colorData = ResistorData.colors[colorKey];
+
+      UIController.openCustomModal('💡 ข้อมูลหน้าที่แถบสี (ไม่หักคะแนน)', `
+        <div class="space-y-2 text-sm">
+          <p><strong>แถบที่ ${index + 1}:</strong> สี${colorData.nameTh}</p>
+          <p><strong>หน้าที่:</strong> ${role.roleTh}</p>
+          <p class="text-xs text-slate-300">${role.desc}</p>
+          <div class="text-xs text-amber-300 pt-2 border-t border-slate-700">
+            * หากต้องการดูค่าตัวเลขจริงของสีนี้ ให้กดปุ่ม <strong>"ขอคำใบ้ค่าสี"</strong> ด้านล่าง
+          </div>
+        </div>
+      `);
+    },
+
+    useValueHint() {
+      if (this.state.usedHintInThisQ) {
+        UIController.openCustomModal('คำใบ้', 'คุณได้ใช้คำใบ้ในข้อนี้ไปแล้ว');
+        return;
+      }
+      this.state.usedHintInThisQ = true;
+      this.state.hintsUsedInRound++;
+      AudioFX.playTone(440, 0.1, 'sine');
+
+      const q = this.state.currentQuestion;
+      const sol = q.solution;
+      document.getElementById('gameHintUsedIndicator').innerText = '⚡ ใช้คำใบ้แล้ว (-15 คะแนน)';
+
+      UIController.openCustomModal('💡 คำใบ้ค่ารหัสสี (-15 คะแนน)', `
+        <div class="space-y-2 text-sm font-tech">
+          <div class="p-2.5 bg-amber-950/60 border border-amber-500/40 rounded-lg text-amber-300">
+            ตัวเลขหลักที่อ่านได้คือ: <strong class="text-white text-base">${sol.digitsStr}</strong> <br>
+            ตัวคูณคือ: <strong class="text-white text-base">×${sol.multiplier.toLocaleString()}</strong>
+          </div>
+          <p class="text-xs text-slate-400">ระบบจะหัก 15 คะแนนจากคะแนนที่ได้รับในข้อนี้</p>
+        </div>
+      `);
+    },
+
+    startQuestionTimer() {
+      clearInterval(this.state.timerInterval);
+      this.state.timeRemaining = this.state.timePerQuestion;
+
+      const timerText = document.getElementById('gameHudTimerText');
+      const timerBar = document.getElementById('gameHudTimerBar');
+
+      const updateUI = () => {
+        timerText.innerText = `${this.state.timeRemaining.toFixed(1)}s`;
+        const pct = (this.state.timeRemaining / this.state.timePerQuestion) * 100;
+        timerBar.style.width = `${Math.max(0, pct)}%`;
+      };
+
+      updateUI();
+      const intervalMs = 100;
+      this.state.timerInterval = setInterval(() => {
+        this.state.timeRemaining -= intervalMs / 1000;
+        if (this.state.timeRemaining <= 0) {
+          clearInterval(this.state.timerInterval);
+          this.state.timeRemaining = 0;
+          updateUI();
+          this.handleTimeout();
+        } else {
+          updateUI();
+        }
+      }, intervalMs);
+    },
+
+    submitCurrentAnswer() {
+      if (!this.state.active) return;
+      clearInterval(this.state.timerInterval);
+      document.getElementById('btnSubmitAnswer').disabled = true;
+
+      const userVal = document.getElementById('inputAnsValue').value.trim();
+      const unitMult = document.getElementById('selectAnsUnit').value;
+      const tolVal = document.getElementById('selectAnsTolerance').value;
+      const tcrVal = document.getElementById('selectAnsTCR').value;
+
+      const userAnswer = {
+        value: userVal,
+        unitMultiplier: unitMult,
+        tolerance: tolVal,
+        tcr: tcrVal
+      };
+
+      const result = AnswerValidator.validate(userAnswer, this.state.currentQuestion, this.state.difficulty);
+      this.processResult(result, false);
+    },
+
+    handleTimeout() {
+      document.getElementById('btnSubmitAnswer').disabled = true;
+      const result = {
+        allCorrect: false,
+        isResistanceCorrect: false,
+        isToleranceCorrect: false,
+        isTCRCorrect: false,
+        scoreEarned: 0,
+        solution: this.state.currentQuestion.solution,
+        isTimeout: true
+      };
+      this.processResult(result, true);
+    },
+
+    processResult(result, isTimeout = false) {
+      let finalPoints = 0;
+      let speedBonus = 0;
+
+      if (result.allCorrect) {
+        AudioFX.playCorrect();
+        this.state.correctCount++;
+        this.state.combo++;
+        if (this.state.combo > this.state.maxCombo) {
+          this.state.maxCombo = this.state.combo;
+        }
+
+        const timeFraction = this.state.timeRemaining / this.state.timePerQuestion;
+        speedBonus = Math.round(timeFraction * 30);
+        finalPoints = result.scoreEarned + speedBonus;
+
+        if (this.state.usedHintInThisQ) {
+          finalPoints = Math.max(0, finalPoints - 15);
+        }
+
+        this.state.score += finalPoints;
+
+        if (this.state.combo >= 3 && this.state.combo % 3 === 0) {
+          setTimeout(() => AudioFX.playCombo(), 350);
+        }
+      } else {
+        AudioFX.playWrong();
+        this.state.combo = 0;
+      }
+
+      this.state.roundHistory.push({
+        qIndex: this.state.currentQIndex,
+        question: this.state.currentQuestion,
+        result,
+        finalPoints,
+        isTimeout
+      });
+
+      this.showFeedbackBox(result, finalPoints, speedBonus, isTimeout);
+    },
+
+    showFeedbackBox(result, finalPoints, speedBonus, isTimeout) {
+      const box = document.getElementById('challengeFeedbackBox');
+      box.classList.remove('hidden');
+
+      const sol = result.solution;
+      let feedbackHtml = '';
+
+      if (result.allCorrect) {
+        box.className = 'glass-panel rounded-xl p-5 border-2 border-emerald-500/70 bg-emerald-950/40 text-emerald-300';
+        feedbackHtml = `
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">🎉</span>
+              <div>
+                <h4 class="font-tech text-lg font-bold text-white">ถูกต้องยอดเยี่ยม! (CORRECT!)</h4>
+                <p class="text-xs text-emerald-200">ค่าที่อ่านได้คือ: <strong>${sol.formatted.display} ±${sol.tolerance}%</strong></p>
+              </div>
+            </div>
+            <div class="text-right font-tech">
+              <div class="text-xs text-emerald-200">+${finalPoints} คะแนน</div>
+              ${speedBonus > 0 ? `<div class="text-[10px] text-amber-300">(โบนัสความเร็ว +${speedBonus})</div>` : ''}
+            </div>
+          </div>
+        `;
+      } else {
+        box.className = 'glass-panel rounded-xl p-5 border-2 border-red-500/70 bg-red-950/40 text-red-300';
+        feedbackHtml = `
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="font-tech text-base font-bold text-white flex items-center gap-2">
+                <span>❌ ${isTimeout ? 'หมดเวลาทำโจทย์!' : 'ยังไม่ถูกต้อง (TRY AGAIN NEXT ROUND)'}</span>
+              </h4>
+              <span class="text-xs px-2 py-0.5 rounded bg-red-900/80 text-white font-tech">+0 คะแนน</span>
+            </div>
+            <div class="p-3 bg-slate-900/90 rounded-lg text-xs space-y-1 font-mono text-slate-200 border border-slate-700">
+              <p><strong>เฉลยที่ถูกต้อง:</strong> <span class="text-cyan-400 font-bold">${sol.formatted.display} ±${sol.tolerance}%</span> ${sol.tcr ? `(${sol.tcr} ppm/°C)` : ''}</p>
+              <p class="text-slate-400">วิธีคำนวณ: ${sol.digitsStr} × ${sol.multiplier.toLocaleString()} = ${sol.valueOhms.toLocaleString()} Ω</p>
+            </div>
+          </div>
+        `;
+      }
+
+      feedbackHtml += `
+        <div class="mt-3 flex justify-end">
+          <button onclick="ChallengeEngine.advanceNext()" class="px-5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold font-tech text-xs transition">
+            ${this.state.currentQIndex >= this.state.totalQuestions ? 'ดูสรุปผลภารกิจ 🏁' : 'ข้อถัดไป ➔'}
+          </button>
+        </div>
+      `;
+
+      box.innerHTML = feedbackHtml;
+    },
+
+    advanceNext() {
+      document.getElementById('challengeFeedbackBox').classList.add('hidden');
+      this.loadNextQuestion();
+    },
+
+    finishMission() {
+      this.state.active = false;
+      this.state.totalElapsedTime = Math.round((Date.now() - this.state.startTime) / 1000);
+
+      document.getElementById('challengeActiveGame').classList.add('hidden');
+      document.getElementById('challengeSummaryScreen').classList.remove('hidden');
+
+      const accuracy = Math.round((this.state.correctCount / this.state.totalQuestions) * 100);
+
+      let rank = 'D';
+      let rankColor = 'text-red-400';
+      if (accuracy >= 90) { rank = 'S'; rankColor = 'text-cyan-400'; }
+      else if (accuracy >= 80) { rank = 'A'; rankColor = 'text-emerald-400'; }
+      else if (accuracy >= 70) { rank = 'B'; rankColor = 'text-blue-400'; }
+      else if (accuracy >= 60) { rank = 'C'; rankColor = 'text-amber-400'; }
+
+      const rankBadge = document.getElementById('summaryRankBadge');
+      rankBadge.innerText = rank;
+      rankBadge.className = `inline-block text-5xl font-black font-tech px-6 py-2 rounded-2xl bg-slate-900 border-2 border-cyan-400 ${rankColor} shadow-xl shadow-cyan-500/20`;
+
+      document.getElementById('sumFinalScore').innerText = this.state.score;
+      document.getElementById('sumAccuracy').innerText = `${accuracy}% (${this.state.correctCount}/${this.state.totalQuestions})`;
+      document.getElementById('sumMaxCombo').innerText = this.state.maxCombo;
+      document.getElementById('sumTotalTime').innerText = `${this.state.totalElapsedTime}s`;
+
+      this.generateRecommendations(accuracy);
+      this.renderReviewTable();
+
+      const profile = ScoreManager.getProfile();
+      ScoreManager.saveRoundScore({
+        studentId: profile.studentId,
+        playerName: profile.name,
+        className: profile.className,
+        difficulty: this.state.difficulty,
+        totalQuestions: this.state.totalQuestions,
+        correctCount: this.state.correctCount,
+        accuracy,
+        score: this.state.score,
+        maxCombo: this.state.maxCombo,
+        hintsUsed: this.state.hintsUsedInRound,
+        totalTime: this.state.totalElapsedTime,
+        details: this.state.roundHistory.map(h => ({
+          bands: h.question.bands,
+          isCorrect: h.result.allCorrect,
+          isTimeout: h.isTimeout
+        }))
+      });
+    },
+
+    generateRecommendations(accuracy) {
+      const recText = document.getElementById('sumRecommendationText');
+      let msg = '';
+      if (accuracy >= 90) {
+        msg = `ยอดเยี่ยมมาก! คุณมีความเชี่ยวชาญการอ่านรหัสแถบสีระดับสูง มีความแม่นยำและรวดเร็ว พร้อมสำหรับการแข่งขันระดับมืออาชีพหรือการปฏิบัติงานในวงจรอิเล็กทรอนิกส์จริง`;
+      } else if (accuracy >= 70) {
+        msg = `ทำได้ดีมาก! ผ่านเกณฑ์มาตรฐานการเรียนรู้ ปวช.1 แนะนำให้ฝึกฝนการแปลงหน่วย kΩ, MΩ และสังเกตตัวคูณแถบสีส้ม (×1k) และสีเหลือง (×10k) ให้คล่องขึ้นอีกเล็กน้อย`;
+      } else {
+        msg = `ควรกลับไปทบทวนในโหมด LEARN เพิ่มเติม โดยเน้นการจำลำดับตัวเลขหลัก (ดำ=0 ถึง ขาว=9) และการสังเกตตำแหน่งของแถบตัวคูณ เพื่อเพิ่มความมั่นใจในการคำนวณ`;
+      }
+      recText.innerText = msg;
+    },
+
+    renderReviewTable() {
+      const tbody = document.getElementById('sumReviewTableBody');
+      let html = '';
+      this.state.roundHistory.forEach((h, idx) => {
+        const sol = h.question.solution;
+        const colorNames = h.question.bands.map(c => ResistorData.colors[c]?.nameTh).join('-');
+        const isOk = h.result.allCorrect;
+
+        html += `
+          <tr class="hover:bg-slate-800/40">
+            <td class="p-2 font-mono">${idx + 1}</td>
+            <td class="p-2 text-slate-300 font-tech">${colorNames} (${h.question.bandCount} แถบ)</td>
+            <td class="p-2 font-mono">${h.isTimeout ? '<span class="text-red-400">หมดเวลา</span>' : (isOk ? '<span class="text-emerald-400">ถูกต้อง</span>' : '<span class="text-red-400">ผิด</span>')}</td>
+            <td class="p-2 font-mono text-cyan-300 font-bold">${sol.formatted.display} ±${sol.tolerance}%</td>
+            <td class="p-2">${isOk ? '<span class="text-emerald-400 font-bold">✓ ผ่าน</span>' : '<span class="text-red-400 font-bold">✗ ปรับปรุง</span>'}</td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    },
+
+    restartCurrentDifficulty() {
+      this.startMission(this.state.difficulty);
+    },
+
+    returnToLobby() {
+      document.getElementById('challengeSummaryScreen').classList.add('hidden');
+      document.getElementById('challengeActiveGame').classList.add('hidden');
+      document.getElementById('challengeLobby').classList.remove('hidden');
+    },
+
+    abortMission() {
+      clearInterval(this.state.timerInterval);
+      this.state.active = false;
+      this.returnToLobby();
+    }
+  };
+
+  const LearnController = {
+    bandCount: 4,
+    currentBands: ['brown', 'red', 'green', 'gold'],
+    showLabels: true,
+
+    init() {
+      this.render();
+    },
+
+    setBandCount(count) {
+      AudioFX.playClick();
+      this.bandCount = count;
+      [4, 5, 6].forEach(c => {
+        const btn = document.getElementById(`btnLearnBands${c}`);
+        if (c === count) {
+          btn.className = 'px-3 py-1 rounded text-xs font-tech font-bold transition bg-cyan-500 text-slate-950';
+        } else {
+          btn.className = 'px-3 py-1 rounded text-xs font-tech font-semibold transition text-slate-300 hover:text-white';
+        }
+      });
+
+      if (count === 4) {
+        this.currentBands = ['brown', 'red', 'green', 'gold'];
+      } else if (count === 5) {
+        this.currentBands = ['blue', 'grey', 'black', 'red', 'gold'];
+      } else if (count === 6) {
+        this.currentBands = ['brown', 'blue', 'grey', 'orange', 'red', 'green'];
+      }
+
+      const p = ScoreManager.getProfile();
+      SupabaseService.logActivity({
+        studentId: p.studentId,
+        studentName: p.name,
+        className: p.className,
+        mode: 'learn',
+        details: { action: 'switch_bands', bandCount: count }
+      });
+
+      this.render();
+    },
+
+    toggleLabels(show) {
+      this.showLabels = show;
+      this.render();
+    },
+
+    randomize() {
+      AudioFX.playClick();
+      const q = QuestionGenerator.generate(this.bandCount, 'normal');
+      this.currentBands = q.bands;
+      this.render();
+    },
+
+    resetDefault() {
+      AudioFX.playClick();
+      this.setBandCount(this.bandCount);
+    },
+
+    changeBandColor(index, colorKey) {
+      this.currentBands[index] = colorKey;
+      this.render();
+    },
+
+    render() {
+      ResistorRenderer.render('learnResistorContainer', this.currentBands, {
+        interactive: true,
+        showLabels: this.showLabels
+      });
+
+      const badgesContainer = document.getElementById('learnBandBadges');
+      let html = '';
+      this.currentBands.forEach((colorKey, idx) => {
+        const role = ResistorData.getRoleInfo(this.bandCount, idx);
+        const color = ResistorData.colors[colorKey];
+        html += `
+          <button onclick="UIController.openBandSpotModal('learn', ${idx})" 
+                  class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 flex items-center gap-2 text-xs font-tech transition shadow-sm">
+            <span class="w-3 h-3 rounded-full border border-white/40" style="background-color: ${color.hex}"></span>
+            <span class="text-slate-300">แถบ ${idx + 1}: ${color.nameTh}</span>
+            ${this.showLabels ? `<span class="text-cyan-400 text-[11px]">(${role.roleTh.split('(')[0]})</span>` : ''}
+          </button>
+        `;
+      });
+      badgesContainer.innerHTML = html;
+
+      const eqBox = document.getElementById('learnEquationBox');
+      const calc = Calculator.calculate(this.currentBands);
+      const c = ResistorData.colors;
+
+      let step1 = '';
+      let step2 = '';
+      if (this.bandCount === 4) {
+        step1 = `ตัวเลขหลัก: [${c[this.currentBands[0]].nameTh} = ${c[this.currentBands[0]].digit}] + [${c[this.currentBands[1]].nameTh} = ${c[this.currentBands[1]].digit}] ➔ ค่าตัวเลข = <span class="text-cyan-300 font-bold">${calc.digitsStr}</span>`;
+        step2 = `ตัวคูณ: [${c[this.currentBands[2]].nameTh}] ➔ ×10<sup>${c[this.currentBands[2]].multExp}</sup> = ×${calc.multiplier.toLocaleString()}`;
+      } else {
+        step1 = `ตัวเลขหลัก: [${c[this.currentBands[0]].digit}] + [${c[this.currentBands[1]].digit}] + [${c[this.currentBands[2]].digit}] ➔ ค่าตัวเลข = <span class="text-cyan-300 font-bold">${calc.digitsStr}</span>`;
+        step2 = `ตัวคูณ: [${c[this.currentBands[3]].nameTh}] ➔ ×10<sup>${c[this.currentBands[3]].multExp}</sup> = ×${calc.multiplier.toLocaleString()}`;
+      }
+
+      eqBox.innerHTML = `
+        <div class="text-slate-400">${step1}</div>
+        <div class="text-slate-400">${step2}</div>
+        <div class="pt-2 border-t border-slate-800 text-base font-bold text-white flex flex-wrap items-center justify-between gap-2">
+          <div>
+            สมการ: ${calc.digitsStr} × ${calc.multiplier.toLocaleString()} = <span class="text-cyan-400">${calc.valueOhms.toLocaleString()} Ω</span>
+          </div>
+          <div class="text-amber-400 text-lg">
+            ผลลัพธ์ = ${calc.formatted.display} ±${calc.tolerance}% ${calc.tcr ? `<span class="text-purple-400">(${calc.tcr} ppm/°C)</span>` : ''}
+          </div>
+        </div>
+      `;
+    }
+  };
+
+  const SimController = {
+    bandCount: 4,
+    currentBands: ['brown', 'black', 'orange', 'gold'],
+
+    init() {
+      this.render();
+    },
+
+    setBandCount(count) {
+      AudioFX.playClick();
+      this.bandCount = count;
+      [4, 5, 6].forEach(c => {
+        const btn = document.getElementById(`btnSimBands${c}`);
+        if (c === count) {
+          btn.className = 'px-3 py-1 rounded text-xs font-tech font-bold transition bg-cyan-500 text-slate-950';
+        } else {
+          btn.className = 'px-3 py-1 rounded text-xs font-tech font-semibold transition text-slate-300 hover:text-white';
+        }
+      });
+
+      if (count === 4) this.currentBands = ['brown', 'black', 'orange', 'gold'];
+      else if (count === 5) this.currentBands = ['brown', 'black', 'black', 'red', 'gold'];
+      else if (count === 6) this.currentBands = ['brown', 'black', 'black', 'red', 'gold', 'brown'];
+
+      this.render();
+    },
+
+    randomize() {
+      AudioFX.playClick();
+      const q = QuestionGenerator.generate(this.bandCount, 'normal');
+      this.currentBands = q.bands;
+      this.render();
+    },
+
+    updateBandColor(bandIndex, colorKey) {
+      this.currentBands[bandIndex] = colorKey;
+      AudioFX.playClick();
+      this.render();
+    },
+
+    render() {
+      ResistorRenderer.render('simResistorContainer', this.currentBands, {
+        interactive: true,
+        showLabels: true
+      });
+
+      const calc = Calculator.calculate(this.currentBands);
+      const minVal = calc.valueOhms * (1 - (calc.tolerance / 100));
+      const maxVal = calc.valueOhms * (1 + (calc.tolerance / 100));
+
+      document.getElementById('simResultValue').innerHTML = `
+        ${calc.formatted.display} <span class="text-amber-400 text-xl font-normal">±${calc.tolerance}%</span>
+        ${calc.tcr ? `<span class="text-purple-400 text-lg font-normal ml-2">(${calc.tcr} ppm/°C)</span>` : ''}
+      `;
+
+      document.getElementById('simResultDetails').innerHTML = `
+        สมการ: ${calc.digitsStr} × ${calc.multiplier.toLocaleString()} = ${calc.valueOhms.toLocaleString()} Ω 
+        (ช่วงความคลาดเคลื่อนยอมรับได้: ${Calculator.formatOhms(minVal).display} ถึง ${Calculator.formatOhms(maxVal).display})
+      `;
+
+      this.renderPickers();
+    },
+
+    renderPickers() {
+      const container = document.getElementById('simColorBandPickers');
+      let html = '';
+
+      for (let i = 0; i < this.bandCount; i++) {
+        const role = ResistorData.getRoleInfo(this.bandCount, i);
+        const activeColor = this.currentBands[i];
+        
+        let allowedList = ResistorData.allowedDigits;
+        if (role.type === 'digit1') allowedList = ResistorData.allowedDigit1;
+        else if (role.type === 'multiplier') allowedList = ResistorData.allowedMultiplierAll;
+        else if (role.type === 'tolerance') allowedList = ResistorData.allowedTolerance;
+        else if (role.type === 'tcr') allowedList = ResistorData.allowedTCR;
+
+        html += `
+          <div class="glass-card rounded-xl p-3 border border-slate-700/80 space-y-2">
+            <div class="flex justify-between items-center text-xs font-tech">
+              <span class="font-bold text-white">แถบ ${i + 1}: ${role.roleTh.split('(')[0]}</span>
+              <span class="text-cyan-400 font-semibold">${ResistorData.colors[activeColor]?.nameTh}</span>
+            </div>
+            <div class="flex flex-wrap gap-1">
+              ${allowedList.map(cKey => {
+                const c = ResistorData.colors[cKey];
+                const isSelected = cKey === activeColor;
+                return `
+                  <button onclick="SimController.updateBandColor(${i}, '${cKey}')"
+                          class="w-6 h-6 rounded-md border transition transform hover:scale-110 flex items-center justify-center ${isSelected ? 'border-2 border-white ring-2 ring-cyan-400 scale-105' : 'border-slate-700'}"
+                          style="background-color: ${c.hex}"
+                          title="${c.nameTh} (${c.nameEn})">
+                    ${isSelected ? '<span class="text-[9px] text-white font-bold drop-shadow">✓</span>' : ''}
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    },
+
+    handleReverseEngineering() {
+      AudioFX.playClick();
+      const val = parseFloat(document.getElementById('inputReverseVal').value);
+      const unitMult = parseFloat(document.getElementById('selectReverseUnit').value);
+      const feedback = document.getElementById('reverseResultFeedback');
+      feedback.classList.remove('hidden');
+
+      if (isNaN(val) || val <= 0) {
+        feedback.innerHTML = `<span class="text-red-400">กรุณากรอกค่าความต้านทานที่ถูกต้องและมากกว่า 0</span>`;
+        return;
+      }
+
+      const targetOhms = val * unitMult;
+      const res = Calculator.reverseEngineering(targetOhms, this.bandCount);
+
+      if (!res.success) {
+        feedback.innerHTML = `
+          <div class="text-amber-300 space-y-1">
+            <p class="font-bold">⚠️ ข้อจำกัดทางเทคนิค:</p>
+            <p>${res.msg}</p>
+          </div>
+        `;
+      } else {
+        this.currentBands = res.bands;
+        this.render();
+        const names = res.bands.map(k => ResistorData.colors[k]?.nameTh).join(' - ');
+        feedback.innerHTML = `
+          <div class="text-emerald-300 space-y-1">
+            <p class="font-bold">✓ จัดแถบสีสำเร็จ:</p>
+            <p class="font-mono text-white text-base">${names}</p>
+            <p class="text-xs text-slate-400">ค่าที่คำนวณได้จริง: ${res.calculated.formatted.display} ±${res.calculated.tolerance}%</p>
+          </div>
+        `;
+
+        const p = ScoreManager.getProfile();
+        SupabaseService.logActivity({
+          studentId: p.studentId,
+          studentName: p.name,
+          className: p.className,
+          mode: 'simulator',
+          details: { action: 'reverse_engineering', targetOhms, bands: res.bands }
+        });
+      }
+    }
+  };
+
+  const ScoreboardController = {
+    mainTab: 'stats',
+    currentDifficulty: 'easy',
+
+    init() {
+      this.switchMainTab('stats');
+    },
+
+    switchMainTab(tab) {
+      AudioFX.playClick();
+      this.mainTab = tab;
+      const btnStats = document.getElementById('btnTabModeStats');
+      const btnBoard = document.getElementById('btnTabOnlineBoard');
+      const subStats = document.getElementById('scoreboardSubViewStats');
+      const subBoard = document.getElementById('scoreboardSubViewLeaderboard');
+
+      if (tab === 'stats') {
+        btnStats.className = 'px-3.5 py-1.5 rounded text-xs font-tech font-bold transition bg-cyan-500 text-slate-950';
+        btnBoard.className = 'px-3.5 py-1.5 rounded text-xs font-tech font-semibold transition text-slate-300 hover:text-white';
+        subStats.classList.remove('hidden');
+        subBoard.classList.add('hidden');
+        this.renderModeStats();
+      } else {
+        btnBoard.className = 'px-3.5 py-1.5 rounded text-xs font-tech font-bold transition bg-cyan-500 text-slate-950';
+        btnStats.className = 'px-3.5 py-1.5 rounded text-xs font-tech font-semibold transition text-slate-300 hover:text-white';
+        subBoard.classList.remove('hidden');
+        subStats.classList.add('hidden');
+        this.renderLeaderboard();
+      }
+    },
+
+    switchDifficultyTab(diff) {
+      AudioFX.playClick();
+      this.currentDifficulty = diff;
+      ['easy', 'normal', 'hard'].forEach(t => {
+        const btn = document.getElementById(`btnScoreTab${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (t === diff) {
+          btn.className = 'px-3 py-1.5 rounded text-xs font-tech font-bold transition bg-cyan-500 text-slate-950';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded text-xs font-tech font-semibold transition text-slate-300 hover:text-white';
+        }
+      });
+      this.renderLeaderboard();
+    },
+
+    renderModeStats() {
+      const activities = ScoreManager.getLocalActivities();
+      const learnList = activities.filter(a => a.mode === 'learn');
+      const simList = activities.filter(a => a.mode === 'simulator');
+      const challengeList = activities.filter(a => a.mode === 'challenge');
+
+      document.getElementById('statLearnCount').innerText = `${learnList.length} ครั้ง`;
+      document.getElementById('statLearnLastView').innerText = learnList.length > 0
+        ? `เข้าชมล่าสุด: ${new Date(learnList[0].timestamp).toLocaleTimeString('th-TH')}`
+        : 'ยังไม่มีประวัติการเข้าชม';
+
+      document.getElementById('statSimCount').innerText = `${simList.length} ครั้ง`;
+      const revCount = simList.filter(s => s.details?.action === 'reverse_engineering').length;
+      document.getElementById('statSimSummary').innerText = `ทดลองผสมสี: ${simList.length} | ถอดรหัสย้อนกลับ: ${revCount}`;
+
+      document.getElementById('statChallengeCount').innerText = `${challengeList.length} รอบ`;
+      if (challengeList.length > 0) {
+        const avgScore = Math.round(challengeList.reduce((acc, c) => acc + (c.score || 0), 0) / challengeList.length);
+        const avgAcc = Math.round(challengeList.reduce((acc, c) => acc + (c.accuracy || 0), 0) / challengeList.length);
+        document.getElementById('statChallengeSummary').innerText = `คะแนนเฉลี่ย: ${avgScore} | ความแม่นยำ: ${avgAcc}%`;
+      } else {
+        document.getElementById('statChallengeSummary').innerText = 'ยังไม่ได้ลงแข่งภารกิจ';
+      }
+
+      const tbody = document.getElementById('myModeStatsTableBody');
+      if (activities.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">ยังไม่มีบันทึกกิจกรรมในเครื่องนี้</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = activities.slice(0, 10).map(act => {
+        const timeStr = new Date(act.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        let modeBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950 text-cyan-400 border border-cyan-500/30">LEARN</span>`;
+        let detail = act.details?.action || 'สำรวจแถบสี';
+        let result = '-';
+
+        if (act.mode === 'simulator') {
+          modeBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-500/30">SIM</span>`;
+          detail = act.details?.action === 'reverse_engineering' ? 'ถอดรหัสย้อนกลับ' : 'จัดแถบสี';
+        } else if (act.mode === 'challenge') {
+          modeBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-400 border border-amber-500/30">${act.difficulty?.toUpperCase()}</span>`;
+          detail = `ทำข้อสอบ ${act.details?.length || 10} ข้อ`;
+          result = `<span class="font-bold text-emerald-400">${act.score} คะแนน (${act.accuracy}%)</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-slate-800/40">
+            <td class="py-2 px-3 text-slate-400 font-mono">${timeStr}</td>
+            <td class="py-2 px-3">${modeBadge}</td>
+            <td class="py-2 px-3 text-slate-300 font-tech">${detail}</td>
+            <td class="py-2 px-3 font-tech">${result}</td>
+          </tr>
+        `;
+      }).join('');
+    },
+
+    async renderLeaderboard() {
+      const tbody = document.getElementById('scoreboardTableBody');
+      const footerSource = document.getElementById('scoreboardFooterSource');
+
+      let scores = await SupabaseService.fetchCloudLeaderboard(this.currentDifficulty);
+
+      if (scores && scores.length > 0) {
+        footerSource.innerText = '🌐 แหล่งข้อมูล: Supabase Cloud Database (Online Leaderboard)';
+      } else {
+        scores = ScoreManager.getScores(this.currentDifficulty);
+        footerSource.innerText = '💾 แหล่งข้อมูล: บันทึกเฉพาะเครื่องนี้ (LocalStorage Fallback)';
+      }
+
+      if (!scores || scores.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="py-6 text-center text-slate-500 text-xs">
+              ยังไม่มีสถิติในระดับ ${this.currentDifficulty.toUpperCase()}
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = '';
+      scores.forEach((s, idx) => {
+        let badge = `${idx + 1}`;
+        if (idx === 0) badge = '🥇 1';
+        else if (idx === 1) badge = '🥈 2';
+        else if (idx === 2) badge = '🥉 3';
+
+        const sId = s.student_id || s.studentId || '-';
+        const sName = s.student_name || s.playerName || 'ผู้เรียน';
+        const sClass = s.class_name || s.className || '-';
+        const sScore = s.score;
+        const sAcc = s.accuracy;
+        const sTime = s.total_time || s.totalTime;
+        const sDate = s.created_at ? new Date(s.created_at).toLocaleDateString('th-TH') : (s.date || '-');
+
+        html += `
+          <tr class="hover:bg-slate-800/40">
+            <td class="py-2.5 px-3 font-tech font-bold ${idx < 3 ? 'text-amber-400' : 'text-slate-400'}">${badge}</td>
+            <td class="py-2.5 px-3 font-mono text-cyan-300">${sId}</td>
+            <td class="py-2.5 px-3 font-semibold text-white">${sName}</td>
+            <td class="py-2.5 px-3 text-slate-300 font-tech">${sClass}</td>
+            <td class="py-2.5 px-3 font-tech font-bold text-amber-400">${sScore}</td>
+            <td class="py-2.5 px-3 text-emerald-400 font-tech">${sAcc}%</td>
+            <td class="py-2.5 px-3 text-slate-400 font-tech">${sTime}s</td>
+            <td class="py-2.5 px-3 text-slate-500 text-xs">${sDate}</td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    },
+
+    refreshLeaderboard() {
+      AudioFX.playClick();
+      this.renderLeaderboard();
+    },
+
+    confirmClearScores() {
+      UIController.openCustomModal('ล้างข้อมูลคะแนนในเครื่อง', `
+        <div class="space-y-3 font-tech text-xs">
+          <p class="text-slate-300">คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติคะแนนและกิจกรรมทั้งหมดที่บันทึกไว้ในอุปกรณ์นี้?</p>
+          <div class="flex gap-2 pt-2">
+            <button onclick="ScoreManager.clearAllData(); ScoreboardController.renderModeStats(); ScoreboardController.renderLeaderboard(); TeacherController.render(); UIController.closeTutorialModal();" class="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold transition">
+              ยืนยันการล้างข้อมูล
+            </button>
+          </div>
+        </div>
+      `);
+    }
+  };
+
+  const TeacherController = {
+    init() {
+      this.render();
+    },
+
+    async render() {
+      this.refreshActiveStudents();
+
+      const history = ScoreManager.getHistory();
+      const totalRounds = history.length;
+      document.getElementById('teacherTotalRounds').innerText = `${totalRounds} รอบ`;
+
+      if (totalRounds === 0) {
+        document.getElementById('teacherPassRate').innerText = '0%';
+        document.getElementById('teacherAvgScore').innerText = '0';
+        document.getElementById('teacherTopWeakness').innerText = 'ไม่มีข้อมูล';
+        document.getElementById('teacherLogTableBody').innerHTML = `
+          <tr><td colspan="8" class="py-6 text-center text-slate-500 text-xs">ยังไม่มีประวัติการทำแบบทดสอบ</td></tr>
+        `;
+        return;
+      }
+
+      const passedCount = history.filter(h => h.accuracy >= 70).length;
+      const passRate = Math.round((passedCount / totalRounds) * 100);
+      document.getElementById('teacherPassRate').innerText = `${passRate}%`;
+
+      const totalScore = history.reduce((sum, h) => sum + h.score, 0);
+      const avgScore = Math.round(totalScore / totalRounds);
+      document.getElementById('teacherAvgScore').innerText = avgScore;
+
+      let wrongCount = 0;
+      history.forEach(h => {
+        if (h.details) {
+          h.details.forEach(d => { if (!d.isCorrect) wrongCount++; });
+        }
+      });
+      document.getElementById('teacherTopWeakness').innerText = wrongCount > 0 ? `ตัวคูณและหน่วย kΩ/MΩ (${wrongCount} ข้อผิด)` : 'ผลการเรียนรู้อยู่ในเกณฑ์ดี';
+
+      const tbody = document.getElementById('teacherLogTableBody');
+      tbody.innerHTML = history.slice(0, 15).map(h => {
+        const isPass = h.accuracy >= 70;
+        const timeStr = new Date(h.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        return `
+          <tr class="hover:bg-slate-800/40">
+            <td class="py-2 px-3 text-slate-400 font-mono">${timeStr}</td>
+            <td class="py-2 px-3 font-mono text-cyan-300">${h.studentId || '-'}</td>
+            <td class="py-2 px-3 font-semibold text-white">${h.playerName}</td>
+            <td class="py-2 px-3 text-slate-300 font-tech">${h.className}</td>
+            <td class="py-2 px-3 font-tech text-xs uppercase text-cyan-300">${h.difficulty}</td>
+            <td class="py-2 px-3 font-tech">${h.correctCount} / ${h.totalQuestions}</td>
+            <td class="py-2 px-3 font-tech font-bold text-amber-400">${h.score}</td>
+            <td class="py-2 px-3 font-tech font-bold ${isPass ? 'text-emerald-400' : 'text-red-400'}">
+              ${isPass ? 'ผ่านเกณฑ์ (PASS)' : 'ปรับปรุง (FAIL)'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    },
+
+    async refreshActiveStudents() {
+      const table = document.getElementById('teacherActiveStudentsTable');
+      const activeStudents = await SupabaseService.fetchActiveStudents();
+
+      if (!activeStudents || activeStudents.length === 0) {
+        const profile = ScoreManager.getProfile();
+        if (profile.studentId) {
+          table.innerHTML = `
+            <tr class="hover:bg-slate-800/40">
+              <td class="py-2 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-500/30">ONLINE (เครื่องนี้)</span></td>
+              <td class="py-2 px-3 font-mono text-cyan-300">${profile.studentId}</td>
+              <td class="py-2 px-3 font-semibold text-white">${profile.name}</td>
+              <td class="py-2 px-3 text-slate-300 font-tech">${profile.className}</td>
+              <td class="py-2 px-3 text-slate-400 text-xs">ขณะนี้</td>
+            </tr>
+          `;
+        } else {
+          table.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-500">ไม่มีนักเรียนออนไลน์ขณะนี้</td></tr>`;
+        }
+        return;
+      }
+
+      table.innerHTML = activeStudents.map(st => {
+        const timeStr = new Date(st.last_active_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        return `
+          <tr class="hover:bg-slate-800/40">
+            <td class="py-2 px-3"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-500/30">🟢 ออนไลน์</span></td>
+            <td class="py-2 px-3 font-mono text-cyan-300">${st.student_id}</td>
+            <td class="py-2 px-3 font-semibold text-white">${st.name}</td>
+            <td class="py-2 px-3 text-slate-300 font-tech">${st.class_name}</td>
+            <td class="py-2 px-3 text-slate-400 font-mono text-xs">${timeStr}</td>
+          </tr>
+        `;
+      }).join('');
+    },
+
+    exportToCSV() {
+      AudioFX.playClick();
+      const history = ScoreManager.getHistory();
+      if (!history || history.length === 0) {
+        UIController.openCustomModal('ข้อความระบบ', 'ยังไม่มีข้อมูลประวัติการเล่นสำหรับส่งออก CSV');
+        return;
+      }
+
+      let csvContent = '\uFEFF';
+      csvContent += 'Timestamp,StudentID,StudentName,Class,Difficulty,TotalQuestions,CorrectCount,Accuracy(%),Score,MaxCombo,HintsUsed,TotalTime(s),Assessment\n';
+
+      history.forEach(h => {
+        const passText = h.accuracy >= 70 ? 'PASS' : 'FAIL';
+        csvContent += `"${h.timestamp}","${h.studentId || ''}","${h.playerName}","${h.className}","${h.difficulty}",${h.totalQuestions},${h.correctCount},${h.accuracy},${h.score},${h.maxCombo},${h.hintsUsed || 0},${h.totalTime},"${passText}"\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Resistor_Scores_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const UIController = {
+    activeView: 'welcome',
+    activeSpotContext: null,
+
+    init() {
+      SupabaseService.init();
+      LoginController.init();
+
+      const profile = ScoreManager.getProfile();
+      this.updateProfileBadge(profile);
+      this.renderReferenceTable();
+
+      LearnController.init();
+      SimController.init();
+      ScoreboardController.init();
+      TeacherController.init();
+
+      setInterval(() => {
+        const p = ScoreManager.getProfile();
+        if (p.studentId) SupabaseService.sendHeartbeat(p.studentId);
+      }, 60000);
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          this.closeBandSpotModal();
+          this.closeProfileModal();
+          this.closeTutorialModal();
+          this.closeSupabaseConfigModal();
+          this.closeSqlSchemaModal();
+        } else if (e.key === 'Enter') {
+          const challengeActive = !document.getElementById('challengeActiveGame').classList.contains('hidden');
+          if (challengeActive) {
+            const feedbackActive = !document.getElementById('challengeFeedbackBox').classList.contains('hidden');
+            if (feedbackActive) {
+              ChallengeEngine.advanceNext();
+            } else {
+              ChallengeEngine.submitCurrentAnswer();
+            }
+          }
+        }
+      });
+
+      document.getElementById('btnAudioToggle').addEventListener('click', () => {
+        AudioFX.toggle();
+      });
+    },
+
+    showSupabaseConfigModal() {
+      AudioFX.playClick();
+      const cfg = SupabaseService.config;
+      document.getElementById('inputSupabaseUrl').value = cfg.url || '';
+      document.getElementById('inputSupabaseAnonKey').value = cfg.anonKey || '';
+      document.getElementById('modalSupabaseConfig').classList.remove('hidden');
+    },
+
+    closeSupabaseConfigModal() {
+      document.getElementById('modalSupabaseConfig').classList.add('hidden');
+    },
+
+    showSqlSchemaModal() {
+      AudioFX.playClick();
+      document.getElementById('txtSqlSchema').value = SupabaseService.getSqlSchema();
+      document.getElementById('modalSqlSchema').classList.remove('hidden');
+    },
+
+    closeSqlSchemaModal() {
+      document.getElementById('modalSqlSchema').classList.add('hidden');
+    },
+
+    copySqlSchemaToClipboard() {
+      AudioFX.playClick();
+      const txt = document.getElementById('txtSqlSchema');
+      txt.select();
+      document.execCommand('copy');
+      UIController.openCustomModal('คัดลอกสำเร็จ', 'คัดลอกโค้ด SQL ลงคลิปบอร์ดแล้ว นำไปวางใน Supabase SQL Editor ได้ทันที');
+    },
+
+    switchView(viewName) {
+      AudioFX.playClick();
+      this.activeView = viewName;
+
+      ['welcome', 'learn', 'simulator', 'challenge', 'scoreboard', 'teacher'].forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.classList.add('hidden');
+      });
+
+      const target = document.getElementById(`view-${viewName}`);
+      if (target) target.classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.getAttribute('data-tab') === viewName) {
+          btn.classList.add('active');
+          btn.classList.remove('text-slate-300');
+        } else {
+          btn.classList.remove('active');
+          btn.classList.add('text-slate-300');
+        }
+      });
+
+      if (viewName === 'learn') LearnController.render();
+      if (viewName === 'simulator') SimController.render();
+      if (viewName === 'scoreboard') ScoreboardController.switchMainTab(ScoreboardController.mainTab);
+      if (viewName === 'teacher') TeacherController.render();
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    updateProfileBadge(profile) {
+      document.getElementById('badgeName').innerText = profile.name || 'ผู้เรียน';
+      document.getElementById('badgeClass').innerText = profile.className || 'ปวช.1';
+      document.getElementById('badgeAvatar').innerText = (profile.name || 'R').charAt(0).toUpperCase();
+    },
+
+    showProfileModal() {
+      AudioFX.playClick();
+      const profile = ScoreManager.getProfile();
+      document.getElementById('inputProfileName').value = profile.name;
+      document.getElementById('inputProfileClass').value = profile.className;
+      document.getElementById('modalProfile').classList.remove('hidden');
+    },
+
+    closeProfileModal() {
+      document.getElementById('modalProfile').classList.add('hidden');
+    },
+
+    saveProfileModal() {
+      AudioFX.playClick();
+      const name = document.getElementById('inputProfileName').value;
+      const className = document.getElementById('inputProfileClass').value;
+      const current = ScoreManager.getProfile();
+      const updated = ScoreManager.saveProfile(current.studentId || 'STD' + Date.now().toString().slice(-4), name, className);
+      this.updateProfileBadge(updated);
+      this.closeProfileModal();
+    },
+
+    showTutorialModal() {
+      AudioFX.playClick();
+      document.getElementById('modalTutorial').classList.remove('hidden');
+    },
+
+    closeTutorialModal() {
+      document.getElementById('modalTutorial').classList.add('hidden');
+    },
+
+    handleBandClick(containerId, index) {
+      if (containerId === 'learnResistorContainer') {
+        this.openBandSpotModal('learn', index);
+      } else if (containerId === 'simResistorContainer') {
+        this.openBandSpotModal('sim', index);
+      } else if (containerId === 'challengeResistorContainer') {
+        ChallengeEngine.showRoleSpotHint(index);
+      }
+    },
+
+    openBandSpotModal(mode, bandIndex) {
+      AudioFX.playClick();
+      this.activeSpotContext = { mode, bandIndex };
+
+      const totalBands = mode === 'learn' ? LearnController.bandCount : SimController.bandCount;
+      const currentBands = mode === 'learn' ? LearnController.currentBands : SimController.currentBands;
+      const colorKey = currentBands[bandIndex];
+      const colorData = ResistorData.colors[colorKey];
+      const role = ResistorData.getRoleInfo(totalBands, bandIndex);
+
+      document.getElementById('modalBandIndex').innerText = `แถบที่ ${bandIndex + 1} จากทั้งหมด ${totalBands} แถบ`;
+      document.getElementById('modalBandColorName').innerText = `สี${colorData.nameTh} (${colorData.nameEn})`;
+      document.getElementById('modalBandRole').innerText = role.roleTh;
+      document.getElementById('modalBandDesc').innerText = role.desc;
+
+      const swatch = document.getElementById('modalBandColorSwatch');
+      swatch.style.backgroundColor = colorData.hex;
+
+      let valText = '-';
+      if (role.type === 'digit1' || role.type === 'digit') {
+        valText = `เลข ${colorData.digit}`;
+      } else if (role.type === 'multiplier') {
+        valText = `คูณ 10^${colorData.multExp} (×${colorData.mult.toLocaleString()} Ω)`;
+      } else if (role.type === 'tolerance') {
+        valText = colorData.tol !== null ? `±${colorData.tol}%` : 'ไม่มีค่า';
+      } else if (role.type === 'tcr') {
+        valText = colorData.tcr !== null ? `${colorData.tcr} ppm/°C` : 'ไม่มีค่า';
+      }
+      document.getElementById('modalBandValue').innerText = valText;
+
+      const palette = document.getElementById('modalBandPalette');
+      let allowedList = ResistorData.allowedDigits;
+      if (role.type === 'digit1') allowedList = ResistorData.allowedDigit1;
+      else if (role.type === 'multiplier') allowedList = ResistorData.allowedMultiplierAll;
+      else if (role.type === 'tolerance') allowedList = ResistorData.allowedTolerance;
+      else if (role.type === 'tcr') allowedList = ResistorData.allowedTCR;
+
+      palette.innerHTML = allowedList.map(cKey => {
+        const c = ResistorData.colors[cKey];
+        const isSel = cKey === colorKey;
+        return `
+          <button onclick="UIController.applyModalBandColor('${cKey}')"
+                  class="w-7 h-7 rounded-lg border transition transform hover:scale-110 flex items-center justify-center ${isSel ? 'border-2 border-white ring-2 ring-cyan-400' : 'border-slate-700'}"
+                  style="background-color: ${c.hex}"
+                  title="${c.nameTh}">
+            ${isSel ? '<span class="text-[10px] text-white font-bold drop-shadow">✓</span>' : ''}
+          </button>
+        `;
+      }).join('');
+
+      document.getElementById('modalBandSpot').classList.remove('hidden');
+    },
+
+    applyModalBandColor(colorKey) {
+      if (!this.activeSpotContext) return;
+      const { mode, bandIndex } = this.activeSpotContext;
+
+      if (mode === 'learn') {
+        LearnController.changeBandColor(bandIndex, colorKey);
+      } else if (mode === 'sim') {
+        SimController.updateBandColor(bandIndex, colorKey);
+      }
+
+      this.openBandSpotModal(mode, bandIndex);
+    },
+
+    closeBandSpotModal() {
+      document.getElementById('modalBandSpot').classList.add('hidden');
+      this.activeSpotContext = null;
+    },
+
+    openCustomModal(title, contentHtml) {
+      const modal = document.getElementById('modalTutorial');
+      const inner = modal.querySelector('div');
+      inner.innerHTML = `
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+          <h3 class="text-base font-bold font-tech text-cyan-400">${title}</h3>
+          <button onclick="UIController.closeTutorialModal()" class="text-slate-400 hover:text-white">✕</button>
+        </div>
+        <div class="py-2 text-slate-200">
+          ${contentHtml}
+        </div>
+        <button onclick="UIController.closeTutorialModal()" class="w-full py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold font-tech text-xs">
+          ตกลง (OK)
+        </button>
+      `;
+      modal.classList.remove('hidden');
+    },
+
+    renderReferenceTable() {
+      const tbody = document.getElementById('referenceTableBody');
+      const colors = ResistorData.colors;
+      let html = '';
+
+      Object.values(colors).forEach(c => {
+        html += `
+          <tr class="hover:bg-slate-800/40">
+            <td class="py-2 px-3 flex items-center gap-2">
+              <span class="w-3.5 h-3.5 rounded-full border border-white/30" style="background-color: ${c.hex}"></span>
+              <span class="font-medium text-white">${c.nameTh} (${c.nameEn})</span>
+            </td>
+            <td class="py-2 px-3 font-mono font-bold text-cyan-300">${c.digit !== null ? c.digit : '-'}</td>
+            <td class="py-2 px-3 font-mono text-slate-300">${c.multExp !== undefined ? `×10<sup>${c.multExp}</sup>` : '-'}</td>
+            <td class="py-2 px-3 font-mono text-amber-300 font-semibold">${c.tol !== null ? `±${c.tol}%` : '-'}</td>
+            <td class="py-2 px-3 font-mono text-purple-300">${c.tcr !== null ? `${c.tcr} ppm/°C` : '-'}</td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+  };
+
+  function runAcceptanceTests() {
+    console.group('🛠️ Acceptance Tests: RESISTOR MASTER');
+    try {
+      const t1 = Calculator.calculate(['brown', 'red', 'green', 'gold']);
+      console.assert(t1.valueOhms === 1200000, 'Test 1 Failed: Ohms must be 1.2M');
+      console.assert(t1.tolerance === 5, 'Test 1 Failed: Tol must be ±5%');
+      console.log('✅ Test 1 Passed: 4-Band 1.2 MΩ ±5%');
+
+      const t2 = Calculator.calculate(['blue', 'grey', 'black', 'red', 'gold']);
+      console.assert(t2.valueOhms === 68000, 'Test 2 Failed: Ohms must be 68k');
+      console.assert(t2.tolerance === 5, 'Test 2 Failed: Tol must be ±5%');
+      console.log('✅ Test 2 Passed: 5-Band 68 kΩ ±5%');
+
+      const t3 = Calculator.calculate(['brown', 'blue', 'grey', 'orange', 'red', 'green']);
+      console.assert(t3.valueOhms === 168000, 'Test 3 Failed: Ohms must be 168k');
+      console.assert(t3.tolerance === 2, 'Test 3 Failed: Tol must be ±2%');
+      console.assert(t3.tcr === 20, 'Test 3 Failed: TCR must be 20 ppm/°C');
+      console.log('✅ Test 3 Passed: 6-Band 168 kΩ ±2% 20ppm/°C');
+
+      const mockQ = { solution: { valueOhms: 1200, tolerance: 5, tcr: null } };
+      const ans1 = AnswerValidator.validate({ value: '1.2', unitMultiplier: '1000', tolerance: '5' }, mockQ, 'normal');
+      const ans2 = AnswerValidator.validate({ value: '1200', unitMultiplier: '1', tolerance: '5' }, mockQ, 'normal');
+      console.assert(ans1.allCorrect && ans2.allCorrect, 'Test 4 Failed: Unit equivalence error');
+      console.log('✅ Test 4 Passed: 1200 Ω equals 1.2 kΩ unit equivalence');
+
+      const rev = Calculator.reverseEngineering(4700, 4);
+      console.assert(rev.success && rev.calculated.valueOhms === 4700, 'Test 5 Failed: Reverse Engineering');
+      console.log('✅ Test 5 Passed: Reverse Engineering 4.7 kΩ');
+
+      console.assert(typeof SupabaseService !== 'undefined', 'Test 6 Failed: SupabaseService is undefined');
+      console.assert(typeof SupabaseService.getSqlSchema() === 'string', 'Test 6 Failed: SQL Schema missing');
+      console.log('✅ Test 6 Passed: SupabaseService and SQL Schema Generator Ready');
+
+    } catch (err) {
+      console.error('❌ Acceptance Test failed:', err);
+    }
+    console.groupEnd();
+  }
+
+  window.onload = function() {
+    UIController.init();
+    runAcceptanceTests();
+  };
+  </script>
+</body>
+</html>
